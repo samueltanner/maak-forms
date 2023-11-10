@@ -1,26 +1,17 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react"
+import logo from "./logo.svg"
+import "./App.css"
+import AddUserForm from "./demo-forms/form-components/AddUserForm"
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <header className=""></header>
+      <div className="h-screen w-screen bg-black text-white  items-center justify-center flex">
+        <AddUserForm />
+      </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
