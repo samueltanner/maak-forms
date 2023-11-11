@@ -1,9 +1,9 @@
-import { FormType } from "../../hooks/useMaakForms"
+import { FormType } from "../../hooks/useMaakForm"
 
 export const add_user_form: FormType = {
   name: {
     label: "Name",
-    type: "string",
+    type: "text",
     minLength: 1,
     maxLength: 255,
     required: true,
@@ -14,16 +14,16 @@ export const add_user_form: FormType = {
     label: "Role",
     type: "select",
     options: [
-      { value: "super_admin", label: "Super Admin" },
-      { value: "org_admin", label: "Organization Admin" },
-      { value: "org_member", label: "Organization Member" },
+      { value: "president", label: "President" },
+      { value: "mr_manager", label: "Mr. Manager" },
+      { value: "inmate", label: "Prisoner #1881372911" },
     ],
     required: true,
     defaultValue: "org_member",
   },
   email: {
     label: "Email",
-    type: "string",
+    type: "text",
     minLength: 1,
     maxLength: 255,
     required: true,
@@ -31,8 +31,8 @@ export const add_user_form: FormType = {
     defaultValue: undefined,
     placeHolder: "Enter email",
   },
-  trial_agreement: {
-    label: "Trial Agreement",
+  is_active: {
+    label: "Active",
     type: "boolean",
     required: false,
     className: "",
@@ -43,5 +43,5 @@ export const add_user_form: FormType = {
     type: "select",
     required: true,
     placeHolder: "Select An Organization",
-  },
+  }
 }

@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useCallback,
   useRef,
+  useEffect,
 } from "react"
 
 export interface FormType {
@@ -12,12 +13,7 @@ export interface FormType {
 }
 
 type OptionType = { value: string; label: string }
-type FieldType = "string" | "select" | "boolean" | "button" | "number"
-
-interface FormComponentProps {
-  formConfig: FormType
-  onSubmit: any
-}
+type FieldType = "text" | "select" | "boolean" | "button" | "number"
 
 interface FieldConfig {
   type: FieldType
@@ -34,17 +30,7 @@ interface FieldConfig {
   valueKey?: string
 }
 
-type ValueOptions =
-  | string
-  | boolean
-  | undefined
-  | SubClassName
-  | OptionType
-  | number
-
-interface SubClassName {
-  [key: string]: string
-}
+type ValueOptions = string | boolean | undefined | OptionType | number
 
 interface FormErrors {
   [key: string]: string | null
@@ -52,6 +38,9 @@ interface FormErrors {
 
 interface FormComponentProps {
   formConfig: FormType
+  onSubmit?: any
+  globalClassNames?: GlobalClassNames
+  setFormObject?: FormObject
 }
 
 interface GlobalClassNames {
@@ -78,7 +67,49 @@ interface FormObject {
   }
 }
 
-const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
+export const deepEqual = (obj1: any, obj2: any) => {
+  if (obj1 === obj2) return true
+
+  if (
+    typeof obj1 !== "object" ||
+    obj1 === null ||
+    typeof obj2 !== "object" ||
+    obj2 === null
+  ) {
+    return false
+  }
+
+  if (Array.isArray(obj1) && Array.isArray(obj2)) {
+    if (obj1.length !== obj2.length) return false
+    for (let item of obj1) {
+      if (!obj2.includes(item)) return false
+    }
+    for (let item of obj2) {
+      if (!obj1.includes(item)) return false
+    }
+    return true
+  }
+
+  const keys1 = Object.keys(obj1)
+  const keys2 = Object.keys(obj2)
+
+  if (keys1.length !== keys2.length) return false
+
+  for (let key of keys1) {
+    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const useMaakForm = ({
+  formConfig,
+  onSubmit,
+  globalClassNames,
+  setFormObject,
+}: FormComponentProps) => {
   const [form, setForm] = useState<FormObject>(() => {
     formConfig["submit"] = {
       label: "submit",
@@ -106,33 +137,18 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
     }, {} as FormObject)
   })
 
-  const [globalClassNames, setGlobalClassNames] = useState<GlobalClassNames>({
-    input: "",
-    label: "",
-    button: "",
-    select: "",
-    checkbox: "",
-  })
-
-  const prevGlobalClassNames = useRef<GlobalClassNames>({})
-
-  function handleUpdateGlobalClassNames(
-    classNameInputObject: GlobalClassNames
-  ) {
-    if (!isEqual(classNameInputObject, prevGlobalClassNames.current)) {
-      setGlobalClassNames((prevClassNames) => {
-        const updatedClassNames = { ...prevClassNames, ...classNameInputObject }
-        return updatedClassNames
-      })
-
-      prevGlobalClassNames.current = { ...classNameInputObject }
+  useEffect(() => {
+    if (setFormObject && !isEqual(form, setFormObject)) {
+      handleUpdateFormItem(setFormObject)
     }
-  }
+  }, [setFormObject])
 
   const prevFormRef = useRef<FormObject>({})
-
   function handleUpdateFormItem(formObjectInput: FormObject) {
-    if (!isEqual(prevFormRef, formObjectInput)) {
+    const formObjectInputString = JSON.stringify(formObjectInput)
+    const previousFormValuesString = JSON.stringify(prevFormRef.current)
+
+    if (formObjectInputString !== previousFormValuesString) {
       setForm((prevForm) => {
         const updatedForm = Object.keys(formObjectInput).reduce(
           (newForm, key) => {
@@ -263,9 +279,11 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
         form[fieldName]?.placeHolder || config?.placeHolder || ""
       const fieldValue =
         form[fieldName].value === undefined || form[fieldName].value === null
-          ? defaultValue
+          ? defaultValue ?? "" // Providing an empty string as fallback
           : form[fieldName].value
-      const computedClassName = `${globalClassNames[config?.type]} ${className}`
+      const computedClassName = `${globalClassNames?.[config?.type]} ${
+        className || ""
+      }`
 
       let inputProps = {
         name: fieldName,
@@ -280,11 +298,8 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
             form[fieldName].labelKey || config?.labelKey || "label"
           const valueKey =
             form[fieldName].valueKey || config?.valueKey || "value"
-
-          // Use `defaultValue` for uncontrolled components
           const isPlaceholderSelected =
             form[fieldName].value === "" || form[fieldName].value === undefined
-
           return (
             <select
               {...inputProps}
@@ -312,7 +327,7 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
               {...inputProps}
               type="checkbox"
               checked={Boolean(fieldValue)}
-              defaultChecked={Boolean(defaultValue)}
+              // defaultChecked={Boolean(defaultValue)}
             />
           )
         case "button":
@@ -334,7 +349,7 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
               required={config?.required}
             />
           )
-        case "string":
+        case "text":
         default:
           return (
             <input
@@ -350,7 +365,7 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
           )
       }
     },
-    [form, globalClassNames]
+    [form, globalClassNames, handleChange]
   )
 
   const handleSubmitInternal = useCallback(() => {
@@ -369,9 +384,7 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
       throw new Error("Form validation errors")
     } else {
       const { submit, reset, ...formValues } = transformedFormValues
-      console.log("Form is valid, submitting the form:", formValues)
       onSubmit(formValues)
-      console.log("Form submitted", onSubmit)
     }
   }, [validateForm, onSubmit])
 
@@ -409,7 +422,7 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
   }) => {
     return (
       <button
-        className={className || globalClassNames.button}
+        className={className || globalClassNames?.button}
         onClick={() => {
           if (enabled) {
             onClick()
@@ -447,14 +460,14 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
       obj[fieldName] = {
         fieldName,
         inputElement: createInputElement(fieldName, formConfig[fieldName]),
-        value: form[fieldName].value,
-        errors: form[fieldName]?.errors,
-        placeHolder: form[fieldName]?.placeHolder,
-        defaultValue: form[fieldName]?.defaultValue,
-        label: form[fieldName]?.label,
-        className: form[fieldName]?.className,
-        type: form[fieldName]?.type,
-        options: form[fieldName]?.options,
+        value: form?.[fieldName].value,
+        errors: form?.[fieldName]?.errors,
+        placeHolder: form?.[fieldName]?.placeHolder,
+        defaultValue: form?.[fieldName]?.defaultValue,
+        label: form?.[fieldName]?.label,
+        className: form?.[fieldName]?.className,
+        type: form?.[fieldName]?.type,
+        options: form?.[fieldName]?.options,
       }
     })
 
@@ -467,7 +480,9 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
           label={form["submit"]?.label || "Submit"}
           onClick={handleSubmitInternal}
           enabled={submitEnabled}
-          className={`${form["submit"]?.className || globalClassNames.button} ${
+          className={`${
+            form["submit"]?.className || globalClassNames?.button
+          } ${
             !submitEnabled ? "cursor-not-allowed opacity-50" : "opacity-100"
           }`}
         />
@@ -483,7 +498,7 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
           type="reset"
           label={form["reset"]?.label || "Reset"}
           onClick={handleResetInternal}
-          className={form["reset"]?.className || globalClassNames.button}
+          className={form["reset"]?.className || globalClassNames?.button}
         />
       ),
     }
@@ -529,10 +544,9 @@ const useMaakForms = ({ formConfig, onSubmit }: FormComponentProps) => {
     createInputElement,
     FormComponent,
     formObject,
-
-    setFormObject: handleUpdateFormItem,
-    setGlobalClassNames: handleUpdateGlobalClassNames,
+    // setFormObject: handleUpdateFormItem,
+    // setGlobalClassNames: handleUpdateGlobalClassNames,
   }
 }
 
-export default useMaakForms
+export default useMaakForm

@@ -7,7 +7,7 @@ function App() {
   return (
     <div className="App">
       <header className=""></header>
-      <div className="h-screen w-screen bg-black text-white  items-center justify-center flex">
+      <div className="h-screen w-screen bg-maak-black text-white  items-center justify-center flex">
         <AddUserForm />
       </div>
     </div>
