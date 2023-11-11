@@ -359,7 +359,6 @@ const useMaakForm = ({
   }, [validateForm, onSubmit])
 
   const handleResetInternal = useCallback(() => {
-    console.log("handleResetInternal", initialFormRef.current)
     const originalFormState = initialFormRef.current
 
     if (Object.keys(originalFormState).length === 0) {

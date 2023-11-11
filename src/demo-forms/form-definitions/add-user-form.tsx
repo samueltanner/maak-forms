@@ -31,8 +31,8 @@ export const add_user_form: FormType = {
     defaultValue: undefined,
     placeHolder: "Enter email",
   },
-  is_active: {
-    label: "Active",
+  is_analyst_and_therapist: {
+    label: "Is Analyst and Therapist?",
     type: "boolean",
     required: false,
     className: "",

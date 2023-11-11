@@ -62,8 +62,15 @@ const AddUserForm = () => {
     // console.log("formObject", formObject)
   }, [formObject])
 
-  const { name, role, email, is_active, organization, submit, reset } =
-    formObject
+  const {
+    name,
+    role,
+    email,
+    is_analyst_and_therapist,
+    organization,
+    submit,
+    reset,
+  } = formObject
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-3 ">
@@ -113,18 +120,21 @@ const AddUserForm = () => {
 
         <div className="flex items-center gap-2">
           <div className="flex justify-between">
-            <label htmlFor={is_active.label} className={defaultLabelStyles}>
-              {is_active.label}
+            <label
+              htmlFor={is_analyst_and_therapist.label}
+              className={`${defaultLabelStyles} whitespace-nowrap pt-0.5`}
+            >
+              {is_analyst_and_therapist.label}
             </label>
 
-            {is_active.errors && (
+            {is_analyst_and_therapist.errors && (
               <span className="mr-2 text-xs font-semibold text-red-500">
-                {is_active.errors}
+                {is_analyst_and_therapist.errors}
               </span>
             )}
           </div>
           <span className="w-full text-maak-black">
-            {is_active.inputElement}
+            {is_analyst_and_therapist.inputElement}
           </span>
         </div>
         <div className="flex flex-col gap-2">
