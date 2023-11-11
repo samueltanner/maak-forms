@@ -72,7 +72,7 @@ const AddUserForm = () => {
     reset,
   } = formObject
   return (
-    <div className="flex flex-col rounded-xl border-2 border-zinc-500 p-6">
+    <div className="flex flex-col rounded-xl border-2 border-zinc-400 p-8">
       <div className="flex flex-col gap-3 ">
         <label className="text-sm font-bold">Add User Form</label>
         <div className="flex flex-col gap-2">
@@ -154,7 +154,7 @@ const AddUserForm = () => {
           </span>
         </div>
       </div>
-      <div className="mt-4 flex justify-between">
+      <div className="mt-6 flex justify-between">
         {reset.inputElement} {submit.inputElement}
       </div>
     </div>

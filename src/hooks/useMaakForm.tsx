@@ -14,7 +14,7 @@ export interface FormType {
 }
 
 type OptionType = { value: string; label: string }
-type FieldType = "text" | "select" | "boolean" | "button" | "number"
+export type FieldType = "text" | "select" | "boolean" | "button" | "number"
 
 interface FieldConfig {
   type: FieldType
@@ -112,6 +112,11 @@ const useMaakForm = ({
       return values
     }, {} as FormObject)
   })
+
+  useEffect(() => {
+    console.log("formConfig", formConfig)
+    console.log("form", form)
+  }, [formConfig, form])
 
   useEffect(() => {
     if (setFormObject && !isEqual(form, setFormObject)) {
@@ -479,13 +484,16 @@ const useMaakForm = ({
 
   const FormComponent = (
     <form onSubmit={handleSubmitInternal}>
-      {Object.keys(formConfig).map((fieldName) => (
-        <div key={fieldName}>
-          <label htmlFor={fieldName}>{fieldName}</label>
-          {createInputElement(fieldName, formConfig[fieldName])}
-        </div>
-      ))}
-      <FormButton
+      {Object.keys(formConfig).map((fieldName) => {
+        const field = formConfig[fieldName]
+        return (
+          <div key={fieldName}>
+            <label htmlFor={fieldName}>{fieldName}</label>
+            {field && createInputElement(fieldName, field)}
+          </div>
+        )
+      })}
+      {/* <FormButton
         type="submit"
         label="Submit"
         onClick={handleSubmitInternal}
@@ -496,7 +504,7 @@ const useMaakForm = ({
         label="Reset"
         onClick={handleResetInternal}
         className={form["submit"]?.className}
-      />
+      /> */}
     </form>
   )
 
