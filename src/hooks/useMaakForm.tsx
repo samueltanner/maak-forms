@@ -65,6 +65,7 @@ interface FormObject {
     labelKey?: string
     valueKey?: string
     required?: boolean
+    pattern?: string
   }
 }
 
@@ -316,7 +317,6 @@ const useMaakForm = ({
               placeholder={config?.placeHolder || (placeHolder as string)}
               minLength={config?.minLength}
               maxLength={config?.maxLength}
-              pattern={config?.pattern}
               required={config?.required}
             />
           )
@@ -330,7 +330,6 @@ const useMaakForm = ({
               placeholder={placeHolder as string}
               minLength={config?.minLength}
               maxLength={config?.maxLength}
-              pattern={config?.pattern}
               required={config?.required}
             />
           )
