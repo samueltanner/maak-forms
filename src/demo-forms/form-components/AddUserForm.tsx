@@ -4,6 +4,8 @@ import {
   defaultLabelStyles,
   defaultInputStyles,
   checkboxStyling,
+  submitButtonStyling,
+  resetButtonStyling,
 } from "../demo-styles/component-styles"
 import { add_user_form } from "../form-definitions/add-user-form"
 const AddUserForm = () => {
@@ -19,16 +21,16 @@ const AddUserForm = () => {
     },
     setFormObject: {
       name: {
-        defaultValue: "Annyong Bluth",
+        placeHolder: "Annyong Bluth",
       },
       email: {
-        defaultValue: "annyong.bluth@bluthco.com",
+        placeHolder: "annyong.bluth@bluthco.com",
       },
       organization: {
         options: [
           {
             value: "7c1de1ef-14f9-4ccd-a907-31a4ba633240",
-            label: "the Bluth Company",
+            label: "The Bluth Company",
           },
           {
             value: "5673c00f-6510-4690-b4ea-b4ad2a684a85",
@@ -44,14 +46,23 @@ const AddUserForm = () => {
           },
         ],
       },
+      submit: {
+        className: submitButtonStyling,
+        label: "Submit",
+      },
+      reset: {
+        className: resetButtonStyling,
+        label: "Reset",
+      },
     },
   })
 
-  const { name, role, email, is_active, organization } = formObject
+  const { name, role, email, is_active, organization, submit, reset } =
+    formObject
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-3 ">
-        <label className="font-bold text-sm">Add User Form</label>
+        <label className="text-sm font-bold">Add User Form</label>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
             <label htmlFor={name.label} className={defaultLabelStyles}>
@@ -78,7 +89,7 @@ const AddUserForm = () => {
               </span>
             )}
           </div>
-          <span className="text-maak-black w-full">{email.inputElement}</span>
+          <span className="w-full text-maak-black">{email.inputElement}</span>
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
@@ -92,10 +103,10 @@ const AddUserForm = () => {
               </span>
             )}
           </div>
-          <span className="text-maak-black w-full">{role.inputElement}</span>
+          <span className="w-full text-maak-black">{role.inputElement}</span>
         </div>
 
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-2">
           <div className="flex justify-between">
             <label htmlFor={is_active.label} className={defaultLabelStyles}>
               {is_active.label}
@@ -107,7 +118,7 @@ const AddUserForm = () => {
               </span>
             )}
           </div>
-          <span className="text-maak-black w-full">
+          <span className="w-full text-maak-black">
             {is_active.inputElement}
           </span>
         </div>
@@ -123,10 +134,13 @@ const AddUserForm = () => {
               </span>
             )}
           </div>
-          <span className="text-maak-black w-full">
+          <span className="w-full text-maak-black">
             {organization.inputElement}
           </span>
         </div>
+      </div>
+      <div className="mt-4 flex justify-between">
+        {reset.inputElement} {submit.inputElement}
       </div>
     </div>
   )

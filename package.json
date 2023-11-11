@@ -21,7 +21,8 @@
     "start": "PORT=3808 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css,html}'"
   },
   "eslintConfig": {
     "extends": [
@@ -46,6 +47,8 @@
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.10",
     "@types/lodash": "^4.14.201",
+    "prettier": "^3.0.3",
+    "prettier-plugin-tailwindcss": "^0.5.7",
     "tailwindcss": "^3.3.5",
     "tailwindcss-animate": "^1.0.7"
   }

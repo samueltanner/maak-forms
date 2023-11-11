@@ -8,7 +8,7 @@ export const add_user_form: FormType = {
     maxLength: 255,
     required: true,
     defaultValue: undefined,
-    placeHolder: "Enter name",
+    // placeHolder: "Enter name",
   },
   role: {
     label: "Role",
@@ -29,7 +29,7 @@ export const add_user_form: FormType = {
     required: true,
     pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
     defaultValue: undefined,
-    placeHolder: "Enter email",
+    // placeHolder: "Enter email",
   },
   is_active: {
     label: "Active",
@@ -42,6 +42,6 @@ export const add_user_form: FormType = {
     label: "Organization",
     type: "select",
     required: true,
-    placeHolder: "Select An Organization",
+    // placeHolder: "Select An Organization",
   }
 }
