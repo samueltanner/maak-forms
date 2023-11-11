@@ -57,6 +57,11 @@ const AddUserForm = () => {
     },
   })
 
+  useEffect(() => {
+    // console.log("formObject name value", formObject.name.value)
+    // console.log("formObject", formObject)
+  }, [formObject])
+
   const { name, role, email, is_active, organization, submit, reset } =
     formObject
   return (

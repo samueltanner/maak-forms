@@ -1,3 +1,4 @@
+import { set } from "lodash"
 import isEqual from "lodash/isEqual"
 import React, {
   useState,
@@ -67,49 +68,23 @@ interface FormObject {
   }
 }
 
-export const deepEqual = (obj1: any, obj2: any) => {
-  if (obj1 === obj2) return true
-
-  if (
-    typeof obj1 !== "object" ||
-    obj1 === null ||
-    typeof obj2 !== "object" ||
-    obj2 === null
-  ) {
-    return false
-  }
-
-  if (Array.isArray(obj1) && Array.isArray(obj2)) {
-    if (obj1.length !== obj2.length) return false
-    for (let item of obj1) {
-      if (!obj2.includes(item)) return false
-    }
-    for (let item of obj2) {
-      if (!obj1.includes(item)) return false
-    }
-    return true
-  }
-
-  const keys1 = Object.keys(obj1)
-  const keys2 = Object.keys(obj2)
-
-  if (keys1.length !== keys2.length) return false
-
-  for (let key of keys1) {
-    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
-      return false
-    }
-  }
-
-  return true
-}
-
 const useMaakForm = ({
   formConfig,
   onSubmit,
   globalClassNames,
   setFormObject,
 }: FormComponentProps) => {
+  const initialFormRef = useRef<FormObject>({})
+
+  useEffect(() => {
+    const constructedForm = constructUpdatedForm(
+      setFormObject || {},
+      formConfig
+    )
+
+    initialFormRef.current = constructedForm
+  }, [formConfig, setFormObject])
+
   const [form, setForm] = useState<FormObject>(() => {
     formConfig["submit"] = {
       label: "submit",
@@ -139,68 +114,74 @@ const useMaakForm = ({
 
   useEffect(() => {
     if (setFormObject && !isEqual(form, setFormObject)) {
-      handleUpdateFormItem(setFormObject)
+      handleUpdateFormItem({ formObjectInput: setFormObject })
     }
   }, [setFormObject])
 
+  function constructUpdatedForm(input: FormObject, prevForm: FormObject) {
+    const updatedForm = Object.keys(input).reduce(
+      (newForm, key) => {
+        const inputItem = input[key]
+        const prevFormItem = prevForm[key]
+
+        if (prevFormItem) {
+          const newValue =
+            inputItem.value !== undefined
+              ? inputItem.value
+              : inputItem.defaultValue !== undefined
+              ? inputItem.defaultValue
+              : prevFormItem.value
+
+          const placeHolder =
+            inputItem.placeHolder !== undefined
+              ? inputItem.placeHolder
+              : prevFormItem.placeHolder
+
+          const newOptions =
+            inputItem.options !== undefined
+              ? inputItem.options
+              : prevFormItem.options
+
+          newForm[key] = {
+            ...prevFormItem,
+            ...inputItem,
+            value: newValue,
+            placeHolder,
+            ...(newOptions && { options: newOptions }),
+
+            required:
+              inputItem.required !== undefined
+                ? inputItem.required
+                : prevFormItem.required,
+          }
+        } else {
+          newForm[key] = {
+            ...inputItem,
+
+            placeHolder:
+              inputItem.placeHolder !== undefined ? inputItem.placeHolder : "",
+          }
+        }
+
+        return newForm
+      },
+      { ...prevForm }
+    )
+    return updatedForm
+  }
+
   const prevFormRef = useRef<FormObject>({})
-  function handleUpdateFormItem(formObjectInput: FormObject) {
+  function handleUpdateFormItem({
+    formObjectInput,
+  }: {
+    formObjectInput: FormObject
+  }) {
     const formObjectInputString = JSON.stringify(formObjectInput)
     const previousFormValuesString = JSON.stringify(prevFormRef.current)
 
     if (formObjectInputString !== previousFormValuesString) {
       setForm((prevForm) => {
-        const updatedForm = Object.keys(formObjectInput).reduce(
-          (newForm, key) => {
-            const inputItem = formObjectInput[key]
-            const prevFormItem = prevForm[key]
-
-            if (prevFormItem) {
-              const newValue =
-                inputItem.value !== undefined
-                  ? inputItem.value
-                  : inputItem.defaultValue !== undefined
-                  ? inputItem.defaultValue
-                  : prevFormItem.value
-
-              const placeHolder =
-                inputItem.placeHolder !== undefined
-                  ? inputItem.placeHolder
-                  : prevFormItem.placeHolder
-
-              const newOptions =
-                inputItem.options !== undefined
-                  ? inputItem.options
-                  : prevFormItem.options
-
-              newForm[key] = {
-                ...prevFormItem,
-                ...inputItem,
-                value: newValue,
-                placeHolder,
-                ...(newOptions && { options: newOptions }),
-
-                required:
-                  inputItem.required !== undefined
-                    ? inputItem.required
-                    : prevFormItem.required,
-              }
-            } else {
-              newForm[key] = {
-                ...inputItem,
-
-                placeHolder:
-                  inputItem.placeHolder !== undefined
-                    ? inputItem.placeHolder
-                    : "",
-              }
-            }
-
-            return newForm
-          },
-          { ...prevForm }
-        )
-
+        const updatedForm = constructUpdatedForm(formObjectInput, prevForm)
         return updatedForm
       })
 
@@ -273,46 +254,37 @@ const useMaakForm = ({
 
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
-      let className = form[fieldName].className || config.className || ""
-      const defaultValue = form[fieldName]?.defaultValue || config?.defaultValue
-      const placeHolder =
-        form[fieldName]?.placeHolder || config?.placeHolder || ""
-      const fieldValue =
-        form[fieldName].value === undefined || form[fieldName].value === null
-          ? defaultValue ?? "" // Providing an empty string as fallback
-          : form[fieldName].value
-      const computedClassName = `${globalClassNames?.[config?.type]} ${
-        className || ""
+      const field = form[fieldName]
+      const type = field?.type || config.type || "text"
+      const placeHolder = field?.placeHolder || config?.placeHolder || ""
+      const fieldValue = field?.value ?? ""
+      const className = `${globalClassNames?.[type]} ${
+        field?.className || config.className || ""
       }`
+      const label = field?.label || config?.label || ""
 
       let inputProps = {
         name: fieldName,
         onChange: handleChange,
-        className: computedClassName,
+        className,
+        label,
       }
 
-      switch (config?.type) {
+      switch (type) {
         case "select":
-          const options = form[fieldName].options || config.options || []
-          const labelKey =
-            form[fieldName].labelKey || config?.labelKey || "label"
-          const valueKey =
-            form[fieldName].valueKey || config?.valueKey || "value"
-          const isPlaceholderSelected =
-            form[fieldName].value === "" || form[fieldName].value === undefined
+          const options = field?.options || config.options || []
+          const labelKey = field?.labelKey || config?.labelKey || "label"
+          const valueKey = field?.valueKey || config?.valueKey || "value"
+          const selectFieldValue = String(fieldValue)
+
           return (
-            <select
-              {...inputProps}
-              defaultValue={
-                isPlaceholderSelected ? "" : (form[fieldName].value as string)
-              }
-            >
-              {!!placeHolder && (
-                <option value="" disabled>
-                  {config.placeHolder ||
-                    (form[fieldName].placeHolder as string)}
-                </option>
-              )}
+            <select {...inputProps} value={selectFieldValue}>
+              {!!placeHolder &&
+                !options.find((opt) => opt[valueKey] === "") && (
+                  <option value="" disabled>
+                    {placeHolder as string}
+                  </option>
+                )}
 
               {options.map((option) => (
                 <option key={option[valueKey]} value={option[valueKey]}>
@@ -327,13 +299,12 @@ const useMaakForm = ({
               {...inputProps}
               type="checkbox"
               checked={Boolean(fieldValue)}
-              // defaultChecked={Boolean(defaultValue)}
             />
           )
         case "button":
           return (
-            <button className={computedClassName} type="button">
-              {config.label}
+            <button className={className} type="button">
+              {label}
             </button>
           )
         case "number":
@@ -356,7 +327,7 @@ const useMaakForm = ({
               {...inputProps}
               type="text"
               value={fieldValue as string}
-              placeholder={config?.placeHolder || (placeHolder as string)}
+              placeholder={placeHolder as string}
               minLength={config?.minLength}
               maxLength={config?.maxLength}
               pattern={config?.pattern}
@@ -389,21 +360,15 @@ const useMaakForm = ({
   }, [validateForm, onSubmit])
 
   const handleResetInternal = useCallback(() => {
-    setForm((prevForm) => {
-      const newForm = { ...prevForm }
+    console.log("handleResetInternal", initialFormRef.current)
+    const originalFormState = initialFormRef.current
 
-      Object.keys(formConfig).forEach((fieldName) => {
-        const defaultValue = formConfig[fieldName].defaultValue
-
-        newForm[fieldName] = {
-          ...prevForm[fieldName],
-          errors: null,
-          value: defaultValue,
-        }
-      })
-
-      return newForm
-    })
+    if (Object.keys(originalFormState).length === 0) {
+      const error = new Error("initialForm is empty")
+      console.log(error)
+    } else {
+      setForm(originalFormState)
+    }
   }, [formConfig])
 
   const FormButton = ({
@@ -442,8 +407,9 @@ const useMaakForm = ({
     )
 
     Object.keys(form).forEach((fieldName) => {
-      const fieldType = form[fieldName].type
-      const fieldValue = form[fieldName] as string | boolean | OptionType
+      const field = form[fieldName]
+      const fieldType = field.type
+      const fieldValue = field as string | boolean | OptionType
       let value
 
       if (
@@ -460,14 +426,14 @@ const useMaakForm = ({
       obj[fieldName] = {
         fieldName,
         inputElement: createInputElement(fieldName, formConfig[fieldName]),
-        value: form?.[fieldName].value,
-        errors: form?.[fieldName]?.errors,
-        placeHolder: form?.[fieldName]?.placeHolder,
-        defaultValue: form?.[fieldName]?.defaultValue,
-        label: form?.[fieldName]?.label,
-        className: form?.[fieldName]?.className,
-        type: form?.[fieldName]?.type,
-        options: form?.[fieldName]?.options,
+        value: field?.value,
+        errors: field?.errors,
+        placeHolder: field?.placeHolder,
+        defaultValue: field?.defaultValue,
+        label: field?.label,
+        className: field?.className,
+        type: field?.type,
+        options: field?.options,
       }
     })
 
@@ -508,6 +474,7 @@ const useMaakForm = ({
     formConfig,
     createInputElement,
     handleSubmitInternal,
+    handleResetInternal,
     form,
     globalClassNames,
   ])
@@ -536,7 +503,8 @@ const useMaakForm = ({
   )
 
   return {
-    handleSubmitForm: handleSubmitInternal,
+    submitForm: handleSubmitInternal,
+    resetForm: handleResetInternal,
     handleChange,
     validateForm,
     formErrors: validateForm(),
@@ -544,8 +512,6 @@ const useMaakForm = ({
     createInputElement,
     FormComponent,
     formObject,
-    // setFormObject: handleUpdateFormItem,
-    // setGlobalClassNames: handleUpdateGlobalClassNames,
   }
 }
 

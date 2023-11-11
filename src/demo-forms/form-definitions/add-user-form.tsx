@@ -19,7 +19,7 @@ export const add_user_form: FormType = {
       { value: "inmate", label: "Prisoner #1881372911" },
     ],
     required: true,
-    defaultValue: "org_member",
+    placeHolder: "Select a role",
   },
   email: {
     label: "Email",
@@ -29,7 +29,7 @@ export const add_user_form: FormType = {
     required: true,
     pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
     defaultValue: undefined,
-    // placeHolder: "Enter email",
+    placeHolder: "Enter email",
   },
   is_active: {
     label: "Active",
@@ -42,6 +42,6 @@ export const add_user_form: FormType = {
     label: "Organization",
     type: "select",
     required: true,
-    // placeHolder: "Select An Organization",
-  }
+    placeHolder: "Select An Organization",
+  },
 }
