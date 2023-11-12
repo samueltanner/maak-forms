@@ -1,6 +1,5 @@
-import { set } from "lodash"
 import isEqual from "lodash/isEqual"
-import React, {
+import {
   useState,
   ChangeEvent,
   useMemo,
@@ -79,8 +78,7 @@ const useMaakForm = ({
 }: FormComponentProps) => {
   const initialFormRef = useRef<FormObject>({})
   const globalClassNames = setGlobalClassNames || {}
-  const currentFormRef = useRef<FormObject>({})
-  const formObjectRef = useRef<FormObject>({})
+
   useEffect(() => {
     const constructedForm = constructUpdatedForm(
       setFormObject || {},
@@ -216,7 +214,7 @@ const useMaakForm = ({
           errors,
         },
       }
-      currentFormRef.current = updatedForm
+
       return updatedForm
     })
   }
@@ -264,10 +262,7 @@ const useMaakForm = ({
     return errors
   }
 
-  useEffect(() => {
-    console.log("currentFormRef", currentFormRef.current.options?.value)
-    console.log("currentFormObject", formObjectRef.current)
-  }, [formConfig, form])
+  const handleClickInternal = () => {}
 
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
@@ -487,8 +482,6 @@ const useMaakForm = ({
       ),
     }
 
-    console.log("updating formObject")
-    formObjectRef.current = obj
     return obj
   }, [
     formConfig,
@@ -541,7 +534,7 @@ const useMaakForm = ({
         </div>
       </form>
     )
-  }, [formConfig, form, initialFormRef, createInputElement, currentFormRef])
+  }, [formConfig, form, initialFormRef, createInputElement])
 
   return {
     submitForm: handleSubmitInternal,
@@ -553,7 +546,6 @@ const useMaakForm = ({
     createInputElement,
     FormComponent,
     formElements: formObject,
-    formState: formObjectRef.current,
   }
 }
 

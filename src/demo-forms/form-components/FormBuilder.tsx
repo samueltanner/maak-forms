@@ -5,7 +5,6 @@ import {
   defaultInputStyles,
   defaultLabelStyles,
 } from "../demo-styles/component-styles"
-import { set } from "lodash"
 
 const FormBuilder = () => {
   const [form, setForm] = useState<FormType>({})
@@ -23,13 +22,9 @@ const FormBuilder = () => {
     onSubmit: () => {},
   })
 
-  // useEffect(() => {
-  //   console.log("formElements builder", formElements)
-  // }, [formElements])
-
   const addFormElement = () => {
     const newForm = { ...form }
-    const newElementKey = "newElementKey" // Define a unique key for the new element
+    const newElementKey = "newElementKey"
     const newElement = {
       label: "New Element",
       type: "text" as FieldType,
@@ -44,10 +39,6 @@ const FormBuilder = () => {
     setForm(updatedForm)
   }
 
-  useEffect(() => {
-    // console.log("formElements", formElements)
-    // console.log("formcomponent", FormComponent)
-  }, [formElements])
   return (
     <div className="flex flex-col items-center gap-4">
       <h1>FormBuilder</h1>
@@ -69,7 +60,7 @@ export default FormBuilder
 const FormBuilderInput = () => {
   const [options, setOptions] = useState([])
 
-  const { formElements, FormComponent, formState } = useMaakForm({
+  const { formElements, FormComponent } = useMaakForm({
     formConfig: {
       input: {
         label: "Input Type",
@@ -139,7 +130,7 @@ const FormBuilderInput = () => {
         type: "button",
         required: false,
         defaultValue: false,
-        onClick: (formElements) => console.log("formElements", formElements),
+        onClick: (el) => handleClick(el),
       },
       labelKey: {
         label: "Label Key",
@@ -174,31 +165,9 @@ const FormBuilderInput = () => {
     onSubmit: () => {},
   })
 
-  // function handleOptionClick() {
-  //   console.log("formElements", formElements.options)
-  //   console.log("formState", formState)
-  // }
-  // useEffect(() => {
-  //   console.log("formElements", formElements.options?.value)
-  // })
-  // function handleAddOptionClick(formElements: any) {
-  //   console.log("formElements", formElements)
-  //   console.log("formState", formState)
-  //   // console.log("Add Option Clicked", currentState.options.value)
-  //   // console.log("formElements", formElements)
-  // }
+  function handleClick(formElements: any) {
+    console.log("formElements", formElements.options)
+  }
 
-  return (
-    <div>
-      {FormComponent}
-      <button
-        onClick={() => {
-          console.log("LOGGING CURRENT FORM STATE")
-          console.log(formState.options)
-        }}
-      >
-        SHOW CURRENT STATE
-      </button>
-    </div>
-  )
+  return <div>{FormComponent}</div>
 }
