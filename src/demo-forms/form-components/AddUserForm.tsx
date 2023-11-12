@@ -9,15 +9,15 @@ import {
 } from "../demo-styles/component-styles"
 import { add_user_form } from "../form-definitions/add-user-form"
 const AddUserForm = () => {
-  const { formObject } = useMaakForm({
+  const { formElements } = useMaakForm({
     formConfig: add_user_form,
     onSubmit: () => {
       console.log("form submitted")
     },
-    globalClassNames: {
-      select: defaultInputStyles,
-      text: defaultInputStyles,
-      boolean: checkboxStyling,
+    setGlobalClassNames: {
+      select: `${defaultInputStyles}  w-80`,
+      text: `${defaultInputStyles}  w-80`,
+      boolean: `${checkboxStyling}`,
     },
     setFormObject: {
       name: {
@@ -58,9 +58,9 @@ const AddUserForm = () => {
   })
 
   useEffect(() => {
-    // console.log("formObject name value", formObject.name.value)
-    // console.log("formObject", formObject)
-  }, [formObject])
+    // console.log("formElements name value", formElements.name.value)
+    // console.log("formElements", formElements)
+  }, [formElements])
 
   const {
     name,
@@ -70,7 +70,10 @@ const AddUserForm = () => {
     organization,
     submit,
     reset,
-  } = formObject
+    dob_day,
+    dob_month,
+    dob_year,
+  } = formElements
   return (
     <div className="flex flex-col rounded-xl border-2 border-zinc-400 p-8">
       <div className="flex flex-col gap-3 ">

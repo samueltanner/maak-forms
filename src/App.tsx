@@ -14,7 +14,7 @@ function App() {
           <Menu />
         </div> */}
         <div className="flex h-full w-full items-center justify-center ">
-          <AddUserForm />
+          {/* <AddUserForm /> */}
         </div>
         <div className="flex h-full w-full items-center justify-center ">
           <FormBuilder />

@@ -29,6 +29,7 @@ interface FieldConfig {
   className?: string
   labelKey?: string
   valueKey?: string
+  onClick?: (props: any) => any
 }
 
 type ValueOptions = string | boolean | undefined | OptionType | number
@@ -40,7 +41,7 @@ interface FormErrors {
 interface FormComponentProps {
   formConfig: FormType
   onSubmit?: any
-  globalClassNames?: GlobalClassNames
+  setGlobalClassNames?: GlobalClassNames
   setFormObject?: FormObject
 }
 
@@ -66,17 +67,20 @@ interface FormObject {
     valueKey?: string
     required?: boolean
     pattern?: string
+    onClick?: (props: any) => any
   }
 }
 
 const useMaakForm = ({
   formConfig,
   onSubmit,
-  globalClassNames,
+  setGlobalClassNames,
   setFormObject,
 }: FormComponentProps) => {
   const initialFormRef = useRef<FormObject>({})
-
+  const globalClassNames = setGlobalClassNames || {}
+  const currentFormRef = useRef<FormObject>({})
+  const formObjectRef = useRef<FormObject>({})
   useEffect(() => {
     const constructedForm = constructUpdatedForm(
       setFormObject || {},
@@ -108,15 +112,13 @@ const useMaakForm = ({
         value: field.defaultValue,
         label: field.label,
         type: field.type,
+        options: field.options,
+        required: field.required,
+        onClick: field.onClick,
       }
       return values
     }, {} as FormObject)
   })
-
-  useEffect(() => {
-    console.log("formConfig", formConfig)
-    console.log("form", form)
-  }, [formConfig, form])
 
   useEffect(() => {
     if (setFormObject && !isEqual(form, setFormObject)) {
@@ -148,11 +150,14 @@ const useMaakForm = ({
               ? inputItem.options
               : prevFormItem.options
 
+          const onClick = inputItem.onClick || prevFormItem.onClick
+
           newForm[key] = {
             ...prevFormItem,
             ...inputItem,
             value: newValue,
             placeHolder,
+            onClick,
             ...(newOptions && { options: newOptions }),
 
             required:
@@ -211,6 +216,7 @@ const useMaakForm = ({
           errors,
         },
       }
+      currentFormRef.current = updatedForm
       return updatedForm
     })
   }
@@ -258,6 +264,11 @@ const useMaakForm = ({
     return errors
   }
 
+  useEffect(() => {
+    console.log("currentFormRef", currentFormRef.current.options?.value)
+    console.log("currentFormObject", formObjectRef.current)
+  }, [formConfig, form])
+
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
       const field = form[fieldName]
@@ -265,9 +276,10 @@ const useMaakForm = ({
       const placeHolder = field?.placeHolder || config?.placeHolder || ""
       const fieldValue = field?.value ?? ""
       const className = `${globalClassNames?.[type]} ${
-        field?.className || config.className || ""
+        field?.className || config?.className || ""
       }`
       const label = field?.label || config?.label || ""
+      const onClick = field?.onClick || config?.onClick
 
       let inputProps = {
         name: fieldName,
@@ -308,8 +320,11 @@ const useMaakForm = ({
             />
           )
         case "button":
+          const handleClick = () => {
+            return onClick && onClick(form)
+          }
           return (
-            <button className={className} type="button">
+            <button className={className} type="button" onClick={handleClick}>
               {label}
             </button>
           )
@@ -472,6 +487,8 @@ const useMaakForm = ({
       ),
     }
 
+    console.log("updating formObject")
+    formObjectRef.current = obj
     return obj
   }, [
     formConfig,
@@ -482,31 +499,49 @@ const useMaakForm = ({
     globalClassNames,
   ])
 
-  const FormComponent = (
-    <form onSubmit={handleSubmitInternal}>
-      {Object.keys(formConfig).map((fieldName) => {
-        const field = formConfig[fieldName]
-        return (
-          <div key={fieldName}>
-            <label htmlFor={fieldName}>{fieldName}</label>
-            {field && createInputElement(fieldName, field)}
-          </div>
-        )
-      })}
-      {/* <FormButton
-        type="submit"
-        label="Submit"
-        onClick={handleSubmitInternal}
-        className={form["submit"]?.className}
-      />
-      <FormButton
-        type="reset"
-        label="Reset"
-        onClick={handleResetInternal}
-        className={form["submit"]?.className}
-      /> */}
-    </form>
-  )
+  const FormComponent = useMemo(() => {
+    return (
+      <form onSubmit={handleSubmitInternal}>
+        <div className="flex flex-wrap gap-4">
+          {Object.keys(form).map((fieldName) => {
+            const field = form[fieldName]
+            const label = field?.label || fieldName
+            const formFieldObject = form[fieldName]
+            const type = formFieldObject?.type || "text"
+
+            return (
+              !["reset", "submit"].includes(fieldName) && (
+                <div key={fieldName} className="flex flex-col gap-2">
+                  {type !== "button" && (
+                    <label htmlFor={label} className={globalClassNames?.label}>
+                      {label}
+                    </label>
+                  )}
+                  {formFieldObject &&
+                    createInputElement(
+                      fieldName,
+                      formFieldObject as FieldConfig
+                    )}
+                </div>
+              )
+            )
+          })}
+          {/* <FormButton
+          type="submit"
+          label="Submit"
+          onClick={handleSubmitInternal}
+          className={form["submit"]?.className}
+          />
+          <FormButton
+          type="reset"
+          label="Reset"
+          onClick={handleResetInternal}
+          className={form["submit"]?.className}
+        /> */}
+        </div>
+      </form>
+    )
+  }, [formConfig, form, initialFormRef, createInputElement, currentFormRef])
 
   return {
     submitForm: handleSubmitInternal,
@@ -517,7 +552,8 @@ const useMaakForm = ({
     onSubmitForm: onSubmit,
     createInputElement,
     FormComponent,
-    formObject,
+    formElements: formObject,
+    formState: formObjectRef.current,
   }
 }
 
