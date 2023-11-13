@@ -616,7 +616,11 @@ const useMaakForm = ({
                       </span>
                     </div>
                   )}
-                  <div className="flex h-full items-center justify-center">
+                  <div
+                    className={`flex h-full items-center justify-center ${
+                      type === "button" && "mt-[25%]"
+                    }`}
+                  >
                     {formFieldObject &&
                       createInputElement(
                         fieldName,
@@ -628,7 +632,7 @@ const useMaakForm = ({
             }
           })}
         </div>
-        <div className="flex w-full justify-between">
+        <div className="flex w-full justify-between gap-4">
           <FormButton
             type="reset"
             label={form["reset"]?.label || "Reset"}
