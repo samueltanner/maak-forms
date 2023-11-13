@@ -16,10 +16,10 @@ type OptionType = { value: string; label: string }
 export type FieldType = "text" | "select" | "boolean" | "button" | "number"
 
 interface FieldConfig {
-  type: FieldType
+  type?: FieldType
   label?: string
   options?: OptionType[]
-  required: boolean
+  required?: boolean
   defaultValue?: ValueOptions
   placeHolder?: string
   minLength?: number
@@ -74,30 +74,34 @@ const useMaakForm = ({
   formConfig,
   onSubmit,
   setGlobalClassNames,
-  setFormObject,
+  setFormObject = {},
 }: FormComponentProps) => {
   const initialFormRef = useRef<FormObject>({})
   const globalClassNames = setGlobalClassNames || {}
 
   useEffect(() => {
-    const constructedForm = constructUpdatedForm(
-      setFormObject || {},
-      formConfig
-    )
+    if (Object.keys(formConfig).length === 0) return
+    const constructedForm = constructUpdatedForm(setFormObject, formConfig)
 
     initialFormRef.current = constructedForm
   }, [formConfig, setFormObject])
 
   const [form, setForm] = useState<FormObject>(() => {
     formConfig["submit"] = {
-      label: "submit",
+      label: formConfig["submit"]?.label,
       type: "button",
       required: true,
+      className: `${globalClassNames?.button} ${
+        formConfig["submit"]?.className || ""
+      }`,
     }
     formConfig["reset"] = {
-      label: "reset",
+      label: formConfig["reset"]?.label,
       type: "button",
       required: true,
+      className: `${globalClassNames?.button} ${
+        formConfig["reset"]?.className || ""
+      }`,
     }
     return Object.keys(formConfig).reduce((values, fieldName) => {
       const field = formConfig[fieldName]
@@ -113,6 +117,7 @@ const useMaakForm = ({
         options: field.options,
         required: field.required,
         onClick: field.onClick,
+        className: field.className,
       }
       return values
     }, {} as FormObject)
@@ -125,61 +130,31 @@ const useMaakForm = ({
   }, [setFormObject])
 
   function constructUpdatedForm(input: FormObject, prevForm: FormObject) {
-    const updatedForm = Object.keys(input).reduce(
-      (newForm, key) => {
-        const inputItem = input[key]
-        const prevFormItem = prevForm[key]
+    const inputFields = new Set(Object.keys(formConfig))
+    const setFormObjectKeys = Object.keys(setFormObject)
+    if (setFormObjectKeys.length > 0) {
+      setFormObjectKeys.forEach((key) => {
+        inputFields.add(key)
+      })
+    }
 
-        if (prevFormItem) {
-          const newValue =
-            inputItem.value !== undefined
-              ? inputItem.value
-              : inputItem.defaultValue !== undefined
-              ? inputItem.defaultValue
-              : prevFormItem.value
+    const updatedFormObject = {} as FormObject
 
-          const placeHolder =
-            inputItem.placeHolder !== undefined
-              ? inputItem.placeHolder
-              : prevFormItem.placeHolder
+    inputFields.forEach((key) => {
+      const newItem = input[key]
+      const prevItem = prevForm?.[key]
 
-          const newOptions =
-            inputItem.options !== undefined
-              ? inputItem.options
-              : prevFormItem.options
+      updatedFormObject[key] = {
+        ...prevItem,
+        ...newItem,
+      }
+    })
 
-          const onClick = inputItem.onClick || prevFormItem.onClick
-
-          newForm[key] = {
-            ...prevFormItem,
-            ...inputItem,
-            value: newValue,
-            placeHolder,
-            onClick,
-            ...(newOptions && { options: newOptions }),
-
-            required:
-              inputItem.required !== undefined
-                ? inputItem.required
-                : prevFormItem.required,
-          }
-        } else {
-          newForm[key] = {
-            ...inputItem,
-
-            placeHolder:
-              inputItem.placeHolder !== undefined ? inputItem.placeHolder : "",
-          }
-        }
-
-        return newForm
-      },
-      { ...prevForm }
-    )
-    return updatedForm
+    return updatedFormObject
   }
 
   const prevFormRef = useRef<FormObject>({})
+
   function handleUpdateFormItem({
     formObjectInput,
   }: {
@@ -272,17 +247,54 @@ const useMaakForm = ({
     await action(formData)
   }
 
+  const FormButton = useCallback(
+    ({
+      type,
+      className = undefined,
+      label,
+      onClick,
+      enabled = true,
+      fieldName = "",
+    }: {
+      forObject?: boolean
+      type?: "button" | "submit" | "reset" | undefined
+      className?: string
+      label?: string
+      onClick?: (props?: any) => void
+      enabled?: boolean
+      fieldName?: string
+    }) => {
+      return (
+        <button
+          className={
+            form?.[fieldName]?.className ||
+            className ||
+            globalClassNames?.button
+          }
+          onClick={() => {
+            if (onClick && enabled) {
+              onClick()
+            }
+          }}
+          type={type}
+        >
+          <p>{label}</p>
+        </button>
+      )
+    },
+    [form, formConfig, globalClassNames]
+  )
+
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
       const field = form[fieldName]
-      const type = field?.type || config.type || "text"
+      const type = field?.type || config?.type || "text"
       const placeHolder = field?.placeHolder || config?.placeHolder || ""
-      const fieldValue = field?.value ?? ""
-      const className = `${globalClassNames?.[type]} ${
-        field?.className || config?.className || ""
-      }`
+      const fieldValue = field?.value ?? field?.defaultValue ?? ""
+      const className = `${globalClassNames?.[type]} ${form[fieldName]?.className}`
       const label = field?.label || config?.label || ""
       const onClick = field?.onClick || config?.onClick
+      const defaultValue = field?.defaultValue || config?.defaultValue
 
       let inputProps = {
         name: fieldName,
@@ -324,15 +336,13 @@ const useMaakForm = ({
           )
         case "button":
           return (
-            <button
-              className={className}
+            <FormButton
               type="button"
-              onClick={() => {
-                handleClickInternal(onClick)
-              }}
-            >
-              {label}
-            </button>
+              label={label}
+              onClick={() => handleClickInternal(onClick)}
+              enabled={true}
+              className={className}
+            />
           )
         case "number":
           return (
@@ -386,7 +396,6 @@ const useMaakForm = ({
 
   const handleResetInternal = useCallback(() => {
     const originalFormState = initialFormRef.current
-
     if (Object.keys(originalFormState).length === 0) {
       const error = new Error("initialForm is empty")
       console.log(error)
@@ -394,35 +403,6 @@ const useMaakForm = ({
       setForm(originalFormState)
     }
   }, [formConfig])
-
-  const FormButton = ({
-    type = "submit",
-    className = "",
-    label = "Submit",
-    onClick = handleSubmitInternal,
-    enabled = true,
-  }: {
-    forObject?: boolean
-    type?: "button" | "submit" | "reset" | undefined
-    className?: string
-    label?: string
-    onClick?: () => void
-    enabled?: boolean
-  }) => {
-    return (
-      <button
-        className={className || globalClassNames?.button}
-        onClick={() => {
-          if (enabled) {
-            onClick()
-          }
-        }}
-        type={type}
-      >
-        <p>{label}</p>
-      </button>
-    )
-  }
 
   const formObject = useMemo(() => {
     const obj: FormObject = {}
@@ -467,7 +447,7 @@ const useMaakForm = ({
       inputElement: (
         <FormButton
           type="button"
-          label={form["submit"]?.label || "Submit"}
+          label={form["submit"]?.label}
           onClick={handleSubmitInternal}
           enabled={submitEnabled}
           className={`${
@@ -505,16 +485,15 @@ const useMaakForm = ({
 
   const FormComponent = useMemo(() => {
     return (
-      <form onSubmit={handleSubmitInternal}>
-        <div className="flex flex-wrap gap-4">
+      <form onSubmit={handleSubmitInternal} className="flex flex-col gap-4">
+        <div className="flex flex-wrap justify-between gap-4">
           {Object.keys(form).map((fieldName) => {
             const field = form[fieldName]
             const label = field?.label || fieldName
             const formFieldObject = form[fieldName]
             const type = formFieldObject?.type || "text"
-
-            return (
-              !["reset", "submit"].includes(fieldName) && (
+            if (!["reset", "submit"].includes(fieldName)) {
+              return (
                 <div key={fieldName} className="flex flex-col gap-2">
                   {type !== "button" && (
                     <label htmlFor={label} className={globalClassNames?.label}>
@@ -528,28 +507,31 @@ const useMaakForm = ({
                     )}
                 </div>
               )
-            )
+            }
           })}
-          <FormButton
-            type="submit"
-            label="Submit"
-            onClick={handleSubmitInternal}
-            className={form["submit"]?.className}
-          />
+        </div>
+        <div className="flex w-full justify-between">
           <FormButton
             type="reset"
-            label="Reset"
+            label={form["reset"]?.label || "Reset"}
             onClick={handleResetInternal}
             className={form["submit"]?.className}
+            fieldName="reset"
+          />
+          <FormButton
+            type="submit"
+            label={form["submit"]?.label || "Submit"}
+            onClick={handleSubmitInternal}
+            className={form["submit"]?.className}
+            fieldName="submit"
           />
         </div>
       </form>
     )
   }, [formConfig, form, initialFormRef, createInputElement])
 
-  const setField = useCallback(
+  const setFieldValue = useCallback(
     (fieldName: string, value: ValueOptions) => {
-      console.log("setField", fieldName, value)
       setForm((prevForm) => {
         const updatedForm = {
           ...prevForm,
@@ -575,7 +557,7 @@ const useMaakForm = ({
     createInputElement,
     FormComponent,
     formElements: formObject,
-    setField,
+    setFieldValue,
   }
 }
 

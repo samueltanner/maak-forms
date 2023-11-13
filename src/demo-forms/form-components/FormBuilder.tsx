@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
 import useMaakForm, { FormType, FieldType } from "../../hooks/useMaakForm"
 import {
-  checkboxStyling,
-  defaultInputStyles,
-  defaultLabelStyles,
+  defaultButtonStyling,
+  defaultCheckboxStyling,
+  defaultInputStyling,
+  defaultLabelStyling,
+  defaultResetButtonStyling,
+  defaultSubmitButtonStyling,
 } from "../demo-styles/component-styles"
 
 const FormBuilder = () => {
@@ -16,6 +19,7 @@ const FormBuilder = () => {
     required: true,
     defaultValue: undefined,
   })
+  const [options, setOptions] = useState<any[]>([])
 
   const { formElements, FormComponent } = useMaakForm({
     formConfig: form,
@@ -41,15 +45,11 @@ const FormBuilder = () => {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <h1>FormBuilder</h1>
+      <h1>Form Builder</h1>
       <div className="flex gap-4">
         <div>
-          <button onClick={() => console.log(FormComponent)}>
-            add element
-          </button>
-          <FormBuilderInput />
+          <FormBuilderInput setOptions={setOptions} />
         </div>
-        {/* <div>{FormComponent}</div> */}
       </div>
     </div>
   )
@@ -57,10 +57,12 @@ const FormBuilder = () => {
 
 export default FormBuilder
 
-const FormBuilderInput = () => {
-  const [options, setOptions] = useState<any[]>([])
-
-  const { formElements, FormComponent, setField } = useMaakForm({
+const FormBuilderInput = ({
+  setOptions,
+}: {
+  setOptions: React.Dispatch<React.SetStateAction<any[]>>
+}) => {
+  const { formElements, FormComponent, setFieldValue } = useMaakForm({
     formConfig: {
       input: {
         label: "Input Type",
@@ -119,29 +121,17 @@ const FormBuilderInput = () => {
         type: "text",
         required: false,
       },
+      pattern: {
+        label: "Pattern",
+        type: "text",
+        required: false,
+        placeHolder: "Enter a regex pattern",
+      },
       options: {
         label: "Options",
         type: "text",
         required: false,
         placeHolder: "{ value: 'text', label: 'Text' }",
-      },
-      add_option: {
-        label: "Add Option",
-        type: "button",
-        required: false,
-        defaultValue: false,
-        onClick: (response: any) => {
-          console.log("response", response.options.value)
-          if (response.options.value === "") return
-
-          try {
-            const parsedOption = JSON.parse(response.options.value)
-            setOptions((prevOptions) => [...prevOptions, parsedOption])
-            setField("options", "")
-          } catch (e) {
-            console.error("Error parsing options: ", e)
-          }
-        },
       },
       labelKey: {
         label: "Label Key",
@@ -153,32 +143,54 @@ const FormBuilderInput = () => {
         type: "text",
         required: false,
       },
-      pattern: {
-        label: "Pattern",
-        type: "text",
+      add_option: {
+        label: "Add Option",
+        type: "button",
         required: false,
-        placeHolder: "Enter a regex pattern",
+        defaultValue: false,
+        className: defaultSubmitButtonStyling,
+        onClick: (response: any) => {
+          console.log("response: ", response)
+          if (
+            response.options.value === "" ||
+            response.options.value === undefined ||
+            response.options.value === null
+          )
+            return
+
+          try {
+            const parsedOption = JSON.parse(response.options.value)
+            setOptions((prevOptions) => [...prevOptions, parsedOption])
+            setFieldValue("options", "")
+          } catch (e) {
+            console.error("Error parsing options: ", e)
+          }
+        },
+      },
+      submit: {
+        className: `${defaultSubmitButtonStyling} whitespace-nowrap w-fit`,
+        label: "Add Element",
+      },
+      reset: {
+        className: `${defaultResetButtonStyling} whitespace-nowrap w-fit`,
+        label: "Reset Input",
       },
     },
     setGlobalClassNames: {
-      select: `${defaultInputStyles}  w-40`,
-      text: defaultInputStyles,
-      boolean: checkboxStyling,
-      number: `${defaultInputStyles}  w-20`,
-      label: defaultLabelStyles,
+      select: `${defaultInputStyling}  w-40`,
+      text: defaultInputStyling,
+      boolean: defaultCheckboxStyling,
+      number: `${defaultInputStyling}  w-20`,
+      label: defaultLabelStyling,
     },
     setFormObject: {
       options: {
         className: "w-60",
       },
-      add_option: {},
     },
     onSubmit: () => {},
   })
 
-  useEffect(() => {
-    console.log(options)
-  }, [options])
 
-  return <div>{FormComponent}</div>
+  return <div className="w-1/2">{FormComponent}</div>
 }

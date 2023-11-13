@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react"
 import useMaakForm from "../../hooks/useMaakForm"
 import {
-  defaultLabelStyles,
-  defaultInputStyles,
-  checkboxStyling,
-  submitButtonStyling,
-  resetButtonStyling,
+  defaultLabelStyling,
+  defaultInputStyling,
+  defaultCheckboxStyling,
+  defaultSubmitButtonStyling,
+  defaultResetButtonStyling,
 } from "../demo-styles/component-styles"
 import { add_user_form } from "../form-definitions/add-user-form"
 const AddUserForm = () => {
@@ -15,9 +15,9 @@ const AddUserForm = () => {
       console.log("form submitted")
     },
     setGlobalClassNames: {
-      select: `${defaultInputStyles}  w-80`,
-      text: `${defaultInputStyles}  w-80`,
-      boolean: `${checkboxStyling}`,
+      select: `${defaultInputStyling}  w-80`,
+      text: `${defaultInputStyling}  w-80`,
+      boolean: `${defaultCheckboxStyling}`,
     },
     setFormObject: {
       name: {
@@ -47,11 +47,11 @@ const AddUserForm = () => {
         ],
       },
       submit: {
-        className: submitButtonStyling,
+        className: defaultSubmitButtonStyling,
         label: "Submit",
       },
       reset: {
-        className: resetButtonStyling,
+        className: defaultResetButtonStyling,
         label: "Reset",
       },
     },
@@ -80,7 +80,7 @@ const AddUserForm = () => {
         <label className="text-sm font-bold">Add User Form</label>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
-            <label htmlFor={name.label} className={defaultLabelStyles}>
+            <label htmlFor={name.label} className={defaultLabelStyling}>
               {name.label}
             </label>
 
@@ -94,7 +94,7 @@ const AddUserForm = () => {
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
-            <label htmlFor={email.label} className={defaultLabelStyles}>
+            <label htmlFor={email.label} className={defaultLabelStyling}>
               {email.label}
             </label>
 
@@ -108,7 +108,7 @@ const AddUserForm = () => {
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
-            <label htmlFor="" className={defaultLabelStyles}>
+            <label htmlFor="" className={defaultLabelStyling}>
               {role.label}
             </label>
 
@@ -125,7 +125,7 @@ const AddUserForm = () => {
           <div className="flex justify-between">
             <label
               htmlFor={is_analyst_and_therapist.label}
-              className={`${defaultLabelStyles} whitespace-nowrap pt-0.5`}
+              className={`${defaultLabelStyling} whitespace-nowrap pt-0.5`}
             >
               {is_analyst_and_therapist.label}
             </label>
@@ -142,7 +142,7 @@ const AddUserForm = () => {
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
-            <label htmlFor={organization.label} className={defaultLabelStyles}>
+            <label htmlFor={organization.label} className={defaultLabelStyling}>
               {organization.label}
             </label>
 
