@@ -67,10 +67,8 @@ const FormBuilder = () => {
 
   const addFormElement = (newFormElement: FormElement) => {
     const newForm = { ...form }
-    console.log("newFormElement: ", newFormElement)
     const key = newFormElement.label.toLowerCase().split(" ").join("_")
     newForm[key] = newFormElement
-    console.log("newForm: ", newForm)
     setForm(newForm)
   }
 
@@ -217,7 +215,6 @@ const FormBuilderInput = ({
       },
     },
     onSubmit: () => {
-      console.log("formElements: ", formElements)
       const objectToSubmit = {} as any
       const { add_option, submit, reset, ...rest } = formElements as FormObject
       for (const key in rest) {
@@ -228,10 +225,6 @@ const FormBuilderInput = ({
       addFormElement(objectToSubmit)
     },
   })
-
-  useEffect(() => {
-    // console.log("formElements", formElements)
-  }, [formElements])
 
   return FormComponent
 }
