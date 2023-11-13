@@ -35,16 +35,21 @@ const FormBuilder = () => {
 
   const { formElements, FormComponent } = useMaakForm({
     key: "form-builder",
-    formConfig: form,
+    formConfig: {
+      required: {
+        label: "Required",
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+      },
+      ...form,
+    },
     onSubmit: () => {},
   })
 
-  useEffect(() => {
-    console.log("formElements", formElements)
-  }, [formElements])
-
   const addFormElement = (newFormElement: FormElement) => {
     const newForm = { ...form }
+    console.log("newFormElement: ", newFormElement)
     const key = newFormElement.label.toLowerCase().split(" ").join("_")
     newForm[key] = newFormElement
     console.log("newForm: ", newForm)
@@ -75,7 +80,7 @@ const FormBuilderInput = ({
 
   const { formElements, FormComponent, setFieldValue } = useMaakForm({
     formConfig: {
-      input: {
+      type: {
         label: "Input Type",
         type: "select",
         options: [
@@ -89,11 +94,6 @@ const FormBuilderInput = ({
       label: {
         label: "Label",
         type: "text",
-        options: [
-          { value: "text", label: "Text" },
-          { value: "select", label: "Select" },
-          { value: "boolean", label: "Boolean" },
-        ],
         required: true,
         placeHolder: "Add a Label",
         minLength: 2,
@@ -175,10 +175,12 @@ const FormBuilderInput = ({
       },
       submit: {
         className: `${defaultSubmitButtonStyling} whitespace-nowrap w-fit`,
+        type: "button",
         label: "Add Element",
       },
       reset: {
         className: `${defaultResetButtonStyling} whitespace-nowrap w-fit`,
+        type: "button",
         label: "Reset Input",
       },
     },
@@ -195,6 +197,7 @@ const FormBuilderInput = ({
       },
     },
     onSubmit: () => {
+      console.log("formElements: ", formElements)
       const objectToSubmit = {} as any
       const { add_option, submit, reset, ...rest } = formElements as FormObject
       for (const key in rest) {
@@ -205,6 +208,10 @@ const FormBuilderInput = ({
       addFormElement(objectToSubmit)
     },
   })
+
+  useEffect(() => {
+    // console.log("formElements", formElements)
+  }, [formElements])
 
   return FormComponent
 }

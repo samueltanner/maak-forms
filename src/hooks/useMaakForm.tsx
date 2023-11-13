@@ -1,3 +1,5 @@
+import { error } from "console"
+import { set } from "lodash"
 import isEqual from "lodash/isEqual"
 import {
   useState,
@@ -16,7 +18,7 @@ export type OptionType = { value: string; label: string }
 export type FieldType = "text" | "select" | "boolean" | "button" | "number"
 
 interface FieldConfig {
-  type?: FieldType
+  type: FieldType
   label?: string
   options?: OptionType[]
   required?: boolean
@@ -80,22 +82,13 @@ const useMaakForm = ({
 }: FormComponentProps) => {
   const initialFormRef = useRef<FormObject>({})
   const globalClassNames = setGlobalClassNames || {}
+  const formConfigRef = useRef<string>(JSON.stringify({}))
+  const prevFormRef = useRef<FormObject>({})
 
   useEffect(() => {
-    if (key === "form-builder") console.log("FORM CONFIG", formConfig)
-  }, [formConfig])
-
-  useEffect(() => {
-    // if (key === "form-builder") console.log("form config UE", formConfig)
     if (Object.keys(formConfig).length === 0) return
     const constructedForm = constructUpdatedForm(setFormObject, formConfig)
-    // if (key === "form-builder")
-    //   console.log(
-    //     "constructedForm",
-    //     constructedForm,
-    //     "initialFormRef",
-    //     initialFormRef.current
-    //   )
+
     initialFormRef.current = constructedForm
   }, [formConfig, setFormObject])
 
@@ -136,6 +129,22 @@ const useMaakForm = ({
     }, {} as FormObject)
   })
 
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+
+  useEffect(() => {
+    if (formConfigRef.current !== JSON.stringify(formConfig)) {
+      const constructedForm = constructUpdatedForm(setFormObject, formConfig)
+
+      const updatedFormObject = constructedForm.updatedFormObject
+      const updatedErrorObject = constructedForm.updatedErrorObject
+
+      setForm(updatedFormObject)
+      setFormErrors(updatedErrorObject)
+      validateForm()
+    }
+    formConfigRef.current = JSON.stringify(formConfig)
+  })
+
   useEffect(() => {
     if (setFormObject && !isEqual(form, setFormObject)) {
       handleUpdateFormItem({ formObjectInput: setFormObject })
@@ -152,6 +161,7 @@ const useMaakForm = ({
     }
 
     const updatedFormObject = {} as FormObject
+    const updatedErrorObject = {} as FormErrors
 
     inputFields.forEach((key) => {
       const newItem = input[key]
@@ -161,12 +171,11 @@ const useMaakForm = ({
         ...prevItem,
         ...newItem,
       }
+      updatedErrorObject[key] = null
     })
 
-    return updatedFormObject
+    return { updatedFormObject, updatedErrorObject }
   }
-
-  const prevFormRef = useRef<FormObject>({})
 
   function handleUpdateFormItem({
     formObjectInput,
@@ -216,24 +225,44 @@ const useMaakForm = ({
     const valueToValidate =
       typeof value === "object" && value !== null ? value.value : value
 
+    let errorMessage = null as string | null
     if (config.required && valueToValidate === "") {
-      return `${config.label} is required`
+      errorMessage = `${config.label} is required`
     }
     if (typeof valueToValidate === "string") {
       if (config.minLength && valueToValidate.length < config.minLength) {
-        return `Minimum length is ${config.minLength}`
+        errorMessage = `Minimum length is ${config.minLength}`
       }
       if (config.maxLength && valueToValidate.length > config.maxLength) {
-        return `Maximum length is ${config.maxLength}`
+        errorMessage = `Maximum length is ${config.maxLength}`
       }
       if (config.pattern && !new RegExp(config.pattern).test(valueToValidate)) {
-        return "Invalid format"
+        errorMessage = "Invalid format"
       }
     }
+    if (errorMessage) {
+      setFormErrors((prevErrors) => {
+        const updatedErrors = {
+          ...prevErrors,
+          [fieldName]: errorMessage,
+        }
+
+        return updatedErrors
+      })
+      return errorMessage
+    }
+    setFormErrors((prevErrors) => {
+      const updatedErrors = {
+        ...prevErrors,
+        [fieldName]: null,
+      }
+
+      return updatedErrors
+    })
     return null
   }
 
-  const validateForm = (): FormErrors => {
+  function validateForm(): FormErrors {
     const errors: FormErrors = {}
 
     Object.keys(formConfig).forEach((fieldName) => {
@@ -247,6 +276,7 @@ const useMaakForm = ({
       }
     })
 
+    setFormErrors(errors)
     return errors
   }
 
@@ -266,7 +296,7 @@ const useMaakForm = ({
       className = undefined,
       label,
       onClick,
-      enabled = true,
+      enabled,
       fieldName = "",
     }: {
       forObject?: boolean
@@ -277,13 +307,17 @@ const useMaakForm = ({
       enabled?: boolean
       fieldName?: string
     }) => {
+      if (fieldName === "submit") {
+        console.log("enabled: ", enabled)
+        console.log("formErrors: ", formErrors)
+      }
       return (
         <button
-          className={
+          className={`${
             form?.[fieldName]?.className ||
             className ||
             globalClassNames?.button
-          }
+          } ${!enabled ? "cursor-not-allowed opacity-50" : "opacity-100"}`}
           onClick={() => {
             if (onClick && enabled) {
               onClick()
@@ -295,19 +329,18 @@ const useMaakForm = ({
         </button>
       )
     },
-    [form, formConfig, globalClassNames]
+    [form, formConfig, globalClassNames, formConfigRef, formErrors]
   )
 
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
       const field = form[fieldName]
-      const type = field?.type || config?.type || "text"
+      const type = form[fieldName]?.type || "text"
       const placeHolder = field?.placeHolder || config?.placeHolder || ""
       const fieldValue = field?.value ?? field?.defaultValue ?? ""
       const className = `${globalClassNames?.[type]} ${form[fieldName]?.className}`
       const label = field?.label || config?.label || ""
       const onClick = field?.onClick || config?.onClick
-      const defaultValue = field?.defaultValue || config?.defaultValue
 
       let inputProps = {
         name: fieldName,
@@ -384,7 +417,14 @@ const useMaakForm = ({
           )
       }
     },
-    [form, globalClassNames, handleChange, formConfig]
+    [
+      form,
+      globalClassNames,
+      handleChange,
+      formConfig,
+      formConfigRef,
+      formErrors,
+    ]
   )
 
   const handleSubmitInternal = useCallback(() => {
@@ -397,9 +437,9 @@ const useMaakForm = ({
       })
     )
 
-    const errors = validateForm()
+    const errors = Object.keys(formErrors).length > 0 ? formErrors : null
 
-    if (Object.values(errors).some((error) => error !== null)) {
+    if (errors && Object.values(errors).some((error) => error !== null)) {
       throw new Error("Form validation errors")
     } else {
       const { submit, reset, ...formValues } = transformedFormValues
@@ -419,8 +459,8 @@ const useMaakForm = ({
 
   const formObject = useMemo(() => {
     const obj: FormObject = {}
-    const submitEnabled = Object.values(form).every(
-      (field) => field.errors === null
+    const submitEnabled = Object.values(formErrors).every(
+      (field) => field === null
     )
 
     Object.keys(form).forEach((fieldName) => {
@@ -485,7 +525,7 @@ const useMaakForm = ({
         />
       ),
     }
-    if (key === "form-builder") console.log("form object", obj)
+
     return obj
   }, [
     formConfig,
@@ -497,24 +537,41 @@ const useMaakForm = ({
   ])
 
   const FormComponent = useMemo(() => {
-    if (key === "form-builder") console.log("rerendering form component")
+    const submitEnabled = Object.values(formErrors).every(
+      (field) => field === null
+    )
+
     return (
       <form onSubmit={handleSubmitInternal} className="flex flex-col gap-4">
         <div className="flex flex-wrap justify-between gap-4">
           {Object.keys(form).map((fieldName) => {
-            if (key === "form-builder") console.log("fieldName", fieldName)
             const field = form[fieldName]
-            const label = field?.label || fieldName
+
+            const label =
+              typeof field?.label === "string" ? field?.label : fieldName
             const formFieldObject = form[fieldName]
             const type = formFieldObject?.type || "text"
             if (!["reset", "submit"].includes(fieldName)) {
               return (
                 <div key={fieldName} className="flex flex-col gap-2">
                   {type !== "button" && (
-                    <label htmlFor={label} className={globalClassNames?.label}>
-                      {label}
-                    </label>
+                    <div className="flex justify-between">
+                      <label
+                        htmlFor={label}
+                        className={`${globalClassNames?.label} whitespace-nowrap`}
+                      >
+                        {label}
+                      </label>
+                      <span className="flex h-2 w-full justify-end">
+                        {formFieldObject?.errors && (
+                          <span className="text-xs text-red-500">
+                            {formFieldObject?.errors}
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   )}
+
                   {formFieldObject &&
                     createInputElement(
                       fieldName,
@@ -532,6 +589,7 @@ const useMaakForm = ({
             onClick={handleResetInternal}
             className={form["submit"]?.className}
             fieldName="reset"
+            enabled={true}
           />
           <FormButton
             type="button"
@@ -539,6 +597,7 @@ const useMaakForm = ({
             onClick={handleSubmitInternal}
             className={form["submit"]?.className}
             fieldName="submit"
+            enabled={submitEnabled}
           />
         </div>
       </form>
@@ -567,7 +626,7 @@ const useMaakForm = ({
     resetForm: handleResetInternal,
     handleChange,
     validateForm,
-    formErrors: validateForm(),
+    formErrors,
     onSubmitForm: onSubmit,
     createInputElement,
     FormComponent,
