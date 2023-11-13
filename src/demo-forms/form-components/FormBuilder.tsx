@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react"
-import useMaakForm, { FormType, FieldType } from "../../hooks/useMaakForm"
+import useMaakForm, {
+  FormType,
+  FieldType,
+  FormObject,
+  ValueOptions,
+  OptionType,
+} from "../../hooks/useMaakForm"
 import {
   defaultButtonStyling,
   defaultCheckboxStyling,
@@ -9,47 +15,50 @@ import {
   defaultSubmitButtonStyling,
 } from "../demo-styles/component-styles"
 
+interface FormElement {
+  label: string
+  type: FieldType
+  minLength?: number
+  maxLength?: number
+  required?: boolean
+  defaultValue?: any
+  placeHolder?: string
+  pattern?: string
+  options?: OptionType[]
+  labelKey?: string
+  valueKey?: string
+  className?: string
+}
+
 const FormBuilder = () => {
   const [form, setForm] = useState<FormType>({})
-  const [formItem, setFormItem] = useState({
-    label: "New Element",
-    type: "text" as FieldType,
-    minLength: 1,
-    maxLength: 255,
-    required: true,
-    defaultValue: undefined,
-  })
-  const [options, setOptions] = useState<any[]>([])
 
   const { formElements, FormComponent } = useMaakForm({
+    key: "form-builder",
     formConfig: form,
     onSubmit: () => {},
   })
 
-  const addFormElement = () => {
-    const newForm = { ...form }
-    const newElementKey = "newElementKey"
-    const newElement = {
-      label: "New Element",
-      type: "text" as FieldType,
-      minLength: 1,
-      maxLength: 255,
-      required: true,
-      defaultValue: undefined,
-    }
-    const key = Math.random().toString(36).substring(7)
+  useEffect(() => {
+    console.log("formElements", formElements)
+  }, [formElements])
 
-    const updatedForm = { ...newForm, [key]: newElement }
-    setForm(updatedForm)
+  const addFormElement = (newFormElement: FormElement) => {
+    const newForm = { ...form }
+    const key = newFormElement.label.toLowerCase().split(" ").join("_")
+    newForm[key] = newFormElement
+    console.log("newForm: ", newForm)
+    setForm(newForm)
   }
 
   return (
     <div className="flex flex-col items-center gap-4">
       <h1>Form Builder</h1>
       <div className="flex gap-4">
-        <div>
-          <FormBuilderInput setOptions={setOptions} />
+        <div className="w-1/2">
+          <FormBuilderInput addFormElement={addFormElement} />
         </div>
+        {FormComponent}
       </div>
     </div>
   )
@@ -58,10 +67,12 @@ const FormBuilder = () => {
 export default FormBuilder
 
 const FormBuilderInput = ({
-  setOptions,
+  addFormElement, // setOptions,
 }: {
-  setOptions: React.Dispatch<React.SetStateAction<any[]>>
+  addFormElement: (props: FormElement) => void
 }) => {
+  const [options, setOptions] = useState<any[]>([])
+
   const { formElements, FormComponent, setFieldValue } = useMaakForm({
     formConfig: {
       input: {
@@ -151,12 +162,7 @@ const FormBuilderInput = ({
         className: defaultSubmitButtonStyling,
         onClick: (response: any) => {
           console.log("response: ", response)
-          if (
-            response.options.value === "" ||
-            response.options.value === undefined ||
-            response.options.value === null
-          )
-            return
+          if (response.options.value === undefined) return
 
           try {
             const parsedOption = JSON.parse(response.options.value)
@@ -188,9 +194,17 @@ const FormBuilderInput = ({
         className: "w-60",
       },
     },
-    onSubmit: () => {},
+    onSubmit: () => {
+      const objectToSubmit = {} as any
+      const { add_option, submit, reset, ...rest } = formElements as FormObject
+      for (const key in rest) {
+        let value = rest[key].value as OptionType | OptionType[]
+        if (key === "options") value = options as OptionType[]
+        objectToSubmit[key] = value
+      }
+      addFormElement(objectToSubmit)
+    },
   })
 
-
-  return <div className="w-1/2">{FormComponent}</div>
+  return FormComponent
 }

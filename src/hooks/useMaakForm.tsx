@@ -12,7 +12,7 @@ export interface FormType {
   [key: string]: FieldConfig
 }
 
-type OptionType = { value: string; label: string }
+export type OptionType = { value: string; label: string }
 export type FieldType = "text" | "select" | "boolean" | "button" | "number"
 
 interface FieldConfig {
@@ -31,7 +31,7 @@ interface FieldConfig {
   onClick?: (props?: any) => void
 }
 
-type ValueOptions = string | boolean | undefined | OptionType | number
+export type ValueOptions = string | boolean | undefined | OptionType | number
 
 interface FormErrors {
   [key: string]: string | null
@@ -42,6 +42,7 @@ interface FormComponentProps {
   onSubmit?: any
   setGlobalClassNames?: GlobalClassNames
   setFormObject?: FormObject
+  key?: string
 }
 
 interface GlobalClassNames {
@@ -50,7 +51,7 @@ interface GlobalClassNames {
 
 type InputChangeEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement>
 
-interface FormObject {
+export interface FormObject {
   [key: string]: {
     fieldName?: string
     inputElement?: JSX.Element
@@ -71,6 +72,7 @@ interface FormObject {
 }
 
 const useMaakForm = ({
+  key,
   formConfig,
   onSubmit,
   setGlobalClassNames,
@@ -80,9 +82,20 @@ const useMaakForm = ({
   const globalClassNames = setGlobalClassNames || {}
 
   useEffect(() => {
+    if (key === "form-builder") console.log("FORM CONFIG", formConfig)
+  }, [formConfig])
+
+  useEffect(() => {
+    // if (key === "form-builder") console.log("form config UE", formConfig)
     if (Object.keys(formConfig).length === 0) return
     const constructedForm = constructUpdatedForm(setFormObject, formConfig)
-
+    // if (key === "form-builder")
+    //   console.log(
+    //     "constructedForm",
+    //     constructedForm,
+    //     "initialFormRef",
+    //     initialFormRef.current
+    //   )
     initialFormRef.current = constructedForm
   }, [formConfig, setFormObject])
 
@@ -371,7 +384,7 @@ const useMaakForm = ({
           )
       }
     },
-    [form, globalClassNames, handleChange]
+    [form, globalClassNames, handleChange, formConfig]
   )
 
   const handleSubmitInternal = useCallback(() => {
@@ -472,7 +485,7 @@ const useMaakForm = ({
         />
       ),
     }
-
+    if (key === "form-builder") console.log("form object", obj)
     return obj
   }, [
     formConfig,
@@ -484,10 +497,12 @@ const useMaakForm = ({
   ])
 
   const FormComponent = useMemo(() => {
+    if (key === "form-builder") console.log("rerendering form component")
     return (
       <form onSubmit={handleSubmitInternal} className="flex flex-col gap-4">
         <div className="flex flex-wrap justify-between gap-4">
           {Object.keys(form).map((fieldName) => {
+            if (key === "form-builder") console.log("fieldName", fieldName)
             const field = form[fieldName]
             const label = field?.label || fieldName
             const formFieldObject = form[fieldName]
@@ -519,7 +534,7 @@ const useMaakForm = ({
             fieldName="reset"
           />
           <FormButton
-            type="submit"
+            type="button"
             label={form["submit"]?.label || "Submit"}
             onClick={handleSubmitInternal}
             className={form["submit"]?.className}
