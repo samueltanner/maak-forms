@@ -20,7 +20,7 @@ interface FormElement {
   type: FieldType
   minLength?: number
   maxLength?: number
-  required?: boolean
+  required: boolean
   defaultValue?: any
   placeHolder?: string
   pattern?: string
@@ -40,10 +40,28 @@ const FormBuilder = () => {
         label: "Required",
         type: "boolean",
         required: false,
-        defaultValue: false,
+      },
+      submit: {
+        className: `${defaultSubmitButtonStyling} whitespace-nowrap w-fit`,
+        type: "button",
+        label: "Add Element",
+        required: true,
+      },
+      reset: {
+        className: `${defaultResetButtonStyling} whitespace-nowrap w-fit`,
+        type: "button",
+        label: "Reset Input",
       },
       ...form,
     },
+    setGlobalClassNames: {
+      select: `${defaultInputStyling}  w-40`,
+      text: defaultInputStyling,
+      boolean: defaultCheckboxStyling,
+      number: `${defaultInputStyling}  w-20`,
+      label: defaultLabelStyling,
+    },
+
     onSubmit: () => {},
   })
 
@@ -87,7 +105,9 @@ const FormBuilderInput = ({
           { value: "text", label: "Text" },
           { value: "select", label: "Select" },
           { value: "boolean", label: "Boolean" },
+          { value: "number", label: "Number" },
         ],
+        // defaultValue: "text",
         required: true,
         placeHolder: "Select a type",
       },
@@ -185,10 +205,10 @@ const FormBuilderInput = ({
       },
     },
     setGlobalClassNames: {
-      select: `${defaultInputStyling}  w-40`,
-      text: defaultInputStyling,
+      select: `${defaultInputStyling}  w-60`,
+      text: `${defaultInputStyling}  w-60`,
       boolean: defaultCheckboxStyling,
-      number: `${defaultInputStyling}  w-20`,
+      number: `${defaultInputStyling}  w-40`,
       label: defaultLabelStyling,
     },
     setFormObject: {
