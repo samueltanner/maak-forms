@@ -28,7 +28,7 @@ interface FieldConfig {
   className?: string
   labelKey?: string
   valueKey?: string
-  onClick?: (props: any) => any
+  onClick?: (props?: any) => void
 }
 
 type ValueOptions = string | boolean | undefined | OptionType | number
@@ -66,7 +66,7 @@ interface FormObject {
     valueKey?: string
     required?: boolean
     pattern?: string
-    onClick?: (props: any) => any
+    onClick?: (props?: any) => void
   }
 }
 
@@ -262,7 +262,15 @@ const useMaakForm = ({
     return errors
   }
 
-  const handleClickInternal = () => {}
+  const handleClickInternal = (action?: any) => {
+    const formData = { ...form }
+    action(formData)
+  }
+
+  const handleAsyncClickInternal = async (action?: any) => {
+    const formData = { ...form }
+    await action(formData)
+  }
 
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
@@ -315,11 +323,14 @@ const useMaakForm = ({
             />
           )
         case "button":
-          const handleClick = () => {
-            return onClick && onClick(form)
-          }
           return (
-            <button className={className} type="button" onClick={handleClick}>
+            <button
+              className={className}
+              type="button"
+              onClick={() => {
+                handleClickInternal(onClick)
+              }}
+            >
               {label}
             </button>
           )
@@ -519,22 +530,40 @@ const useMaakForm = ({
               )
             )
           })}
-          {/* <FormButton
-          type="submit"
-          label="Submit"
-          onClick={handleSubmitInternal}
-          className={form["submit"]?.className}
+          <FormButton
+            type="submit"
+            label="Submit"
+            onClick={handleSubmitInternal}
+            className={form["submit"]?.className}
           />
           <FormButton
-          type="reset"
-          label="Reset"
-          onClick={handleResetInternal}
-          className={form["submit"]?.className}
-        /> */}
+            type="reset"
+            label="Reset"
+            onClick={handleResetInternal}
+            className={form["submit"]?.className}
+          />
         </div>
       </form>
     )
   }, [formConfig, form, initialFormRef, createInputElement])
+
+  const setField = useCallback(
+    (fieldName: string, value: ValueOptions) => {
+      console.log("setField", fieldName, value)
+      setForm((prevForm) => {
+        const updatedForm = {
+          ...prevForm,
+          [fieldName]: {
+            ...prevForm[fieldName],
+            value,
+          },
+        }
+
+        return updatedForm
+      })
+    },
+    [form]
+  )
 
   return {
     submitForm: handleSubmitInternal,
@@ -546,6 +575,7 @@ const useMaakForm = ({
     createInputElement,
     FormComponent,
     formElements: formObject,
+    setField,
   }
 }
 

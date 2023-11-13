@@ -58,9 +58,9 @@ const FormBuilder = () => {
 export default FormBuilder
 
 const FormBuilderInput = () => {
-  const [options, setOptions] = useState([])
+  const [options, setOptions] = useState<any[]>([])
 
-  const { formElements, FormComponent } = useMaakForm({
+  const { formElements, FormComponent, setField } = useMaakForm({
     formConfig: {
       input: {
         label: "Input Type",
@@ -130,7 +130,18 @@ const FormBuilderInput = () => {
         type: "button",
         required: false,
         defaultValue: false,
-        onClick: (el) => handleClick(el),
+        onClick: (response: any) => {
+          console.log("response", response.options.value)
+          if (response.options.value === "") return
+
+          try {
+            const parsedOption = JSON.parse(response.options.value)
+            setOptions((prevOptions) => [...prevOptions, parsedOption])
+            setField("options", "")
+          } catch (e) {
+            console.error("Error parsing options: ", e)
+          }
+        },
       },
       labelKey: {
         label: "Label Key",
@@ -165,9 +176,9 @@ const FormBuilderInput = () => {
     onSubmit: () => {},
   })
 
-  function handleClick(formElements: any) {
-    console.log("formElements", formElements.options)
-  }
+  useEffect(() => {
+    console.log(options)
+  }, [options])
 
   return <div>{FormComponent}</div>
 }
