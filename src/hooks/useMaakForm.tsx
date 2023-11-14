@@ -1,5 +1,3 @@
-import { error } from "console"
-import { set } from "lodash"
 import isEqual from "lodash/isEqual"
 import {
   useState,
@@ -169,8 +167,10 @@ const useMaakForm = ({
       }
       const newItem = input[key]
       const prevItem = prevForm?.[key]
+      const value = newItem?.value || prevItem?.value || newItem?.defaultValue
 
       updatedFormObject[key] = {
+        value,
         ...prevItem,
         ...newItem,
       }
@@ -273,7 +273,7 @@ const useMaakForm = ({
     if (required && (valueToValidate === "" || valueToValidate === null)) {
       errorMessage = `${config.label} is required`
     }
-    if (typeof valueToValidate === "string") {
+    if (typeof valueToValidate === "string" && required) {
       if (config.minLength && valueToValidate.length < config.minLength) {
         errorMessage = `Minimum length is ${config.minLength}`
       }
@@ -315,7 +315,7 @@ const useMaakForm = ({
     const errors: FormErrors = {}
 
     Object.keys(form).forEach((fieldName) => {
-      const value = form?.[fieldName]?.value
+      const value = form?.[fieldName]?.value || form?.[fieldName]?.defaultValue
       const error = validateField(fieldName, value)
 
       if (error) {
@@ -403,12 +403,11 @@ const useMaakForm = ({
 
           return (
             <select {...inputProps} value={selectFieldValue}>
-              {!!placeHolder &&
-                !options.find((opt) => opt[valueKey] === "") && (
-                  <option value="" disabled>
-                    {placeHolder as string}
-                  </option>
-                )}
+              {!options.find((opt) => opt[valueKey] === "") && (
+                <option value="" disabled>
+                  {(placeHolder as string) || "Select an option"}
+                </option>
+              )}
 
               {options.map((option) => (
                 <option key={option[valueKey]} value={option[valueKey]}>
@@ -588,8 +587,12 @@ const useMaakForm = ({
     )
 
     return (
-      <form onSubmit={handleSubmitInternal} className="flex flex-col gap-4">
-        <div className="flex flex-wrap justify-start gap-4">
+      <form
+        onSubmit={handleSubmitInternal}
+        className="flex flex-col gap-4"
+        key={key}
+      >
+        <div className="flex flex-col gap-4">
           {Object.keys(form).map((fieldName) => {
             const field = form[fieldName]
             const required = field?.required || false
@@ -617,9 +620,11 @@ const useMaakForm = ({
                     </div>
                   )}
                   <div
-                    className={`flex h-full items-center justify-center ${
+                    className={`flex h-full items-center justify-start ${
                       type === "button" && "mt-[25%]"
-                    }`}
+                    }
+                    ${type === "boolean" && "ml-2"}
+                    `}
                   >
                     {formFieldObject &&
                       createInputElement(
@@ -632,7 +637,7 @@ const useMaakForm = ({
             }
           })}
         </div>
-        <div className="flex w-full justify-between gap-4">
+        <div className="flex w-fit justify-between gap-4">
           <FormButton
             type="reset"
             label={form["reset"]?.label || "Reset"}
