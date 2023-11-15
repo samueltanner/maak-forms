@@ -1,4 +1,6 @@
+import { min } from "lodash"
 import isEqual from "lodash/isEqual"
+import { isObject } from "lodash"
 import {
   useState,
   ChangeEvent,
@@ -12,26 +14,117 @@ export interface FormType {
   [key: string]: FieldConfig
 }
 
-export type OptionType = { value: string; label: string }
-export type FieldType = "text" | "select" | "boolean" | "button" | "number"
+export type OptionType = { [key: string]: string }
 
-interface FieldConfig {
+export type FieldType =
+  | "boolean"
+  | "bounded-range"
+  | "button"
+  | "date"
+  | "datetime"
+  | "multiselect"
+  | "number"
+  | "password"
+  | "radio"
+  | "range"
+  | "select"
+  | "searchable-select"
+  | "text"
+
+interface BaseFieldConfig {
   type: FieldType
   label?: string
-  options?: OptionType[]
   required?: boolean
   defaultValue?: ValueOptions
+  className?: string
+  value?: ValueOptions
   placeHolder?: string
+  readonly?: boolean
+}
+
+interface TextFieldConfig extends BaseFieldConfig {
+  type: "text" | "password"
   minLength?: number
   maxLength?: number
   pattern?: string
-  className?: string
+}
+
+interface PasswordFieldConfig extends TextFieldConfig {
+  type: "password"
+}
+
+interface SelectFieldConfig extends BaseFieldConfig {
+  type: "select" | "radio" | "multiselect" | "searchable-select"
+  options?: OptionType[]
   labelKey?: string
   valueKey?: string
+}
+
+interface BooleanFieldConfig extends BaseFieldConfig {
+  type: "boolean"
+}
+
+interface ButtonFieldConfig extends BaseFieldConfig {
+  type: "button"
   onClick?: (props?: any) => void
 }
 
-export type ValueOptions = string | boolean | undefined | OptionType | number
+interface NumberFieldConfig extends BaseFieldConfig {
+  type: "number" | "range" | "bounded-range"
+  min?: number
+  max?: number
+  step?: number
+}
+
+interface DateFieldConfig extends BaseFieldConfig {
+  type: "date" | "datetime"
+  min?: number
+  max?: number
+  step?: number
+}
+
+interface DateTimeFieldConfig extends DateFieldConfig {
+  type: "datetime"
+}
+
+interface RadioFieldConfig extends SelectFieldConfig {
+  type: "radio"
+}
+
+interface RangeFieldConfig extends NumberFieldConfig {
+  type: "range" | "bounded-range"
+}
+
+// Union type for FieldConfig
+export type FieldConfig =
+  | TextFieldConfig
+  | SelectFieldConfig
+  | BooleanFieldConfig
+  | ButtonFieldConfig
+  | NumberFieldConfig
+  | DateFieldConfig
+  | DateTimeFieldConfig
+  | PasswordFieldConfig
+  | RadioFieldConfig
+  | RangeFieldConfig
+
+// interface FieldConfig {
+//   type: FieldType
+//   label?: string
+//   options?: OptionType[]
+//   required?: boolean
+//   defaultValue?: ValueOptions
+//   placeHolder?: string
+//   minLength?: number
+//   maxLength?: number
+//   pattern?: string
+//   className?: string
+//   labelKey?: string
+//   valueKey?: string
+//   onClick?: (props?: any) => void
+// }
+
+export type ValueOptions = string | boolean | undefined | number | OptionType
 
 interface FormErrors {
   [key: string]: string | null
@@ -51,23 +144,33 @@ interface GlobalClassNames {
 
 type InputChangeEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement>
 
+export interface FormElement {
+  [key: string]: any
+  type?: FieldType
+  label?: string
+  value?: ValueOptions
+  required?: boolean
+  defaultValue?: any
+  placeHolder?: string
+  pattern?: string
+  options?: OptionType[]
+  labelKey?: string
+  valueKey?: string
+  className?: string
+  onClick?: (response: any) => void
+  min?: string | number
+  max?: string | number
+  minLength?: string | number
+  maxLength?: string | number
+  step?: string | number
+  name?: string
+  readonly?: boolean
+}
 export interface FormObject {
-  [key: string]: {
+  [key: string]: FormElement & {
     fieldName?: string
     inputElement?: JSX.Element
     errors?: string | null
-    placeHolder?: ValueOptions
-    defaultValue?: ValueOptions
-    value?: ValueOptions
-    label?: string
-    className?: string
-    type?: FieldType
-    options?: any[]
-    labelKey?: string
-    valueKey?: string
-    required?: boolean
-    pattern?: string
-    onClick?: (props?: any) => void
   }
 }
 
@@ -118,9 +221,9 @@ const useMaakForm = ({
         value: field.defaultValue,
         label: field.label,
         type: field.type,
-        options: field.options,
+        options: field.type === "select" ? field.options : undefined,
         required: field.required,
-        onClick: field.onClick,
+        onClick: field.type === "button" ? field.onClick : undefined,
         className: field.className,
       }
       return values
@@ -240,7 +343,7 @@ const useMaakForm = ({
     value: ValueOptions | null
   ): string | null {
     const config = formConfig[fieldName]
-    const type = config?.type || "text"
+    const type = config.type
     const required = config?.required || false
 
     let valueToValidate
@@ -248,7 +351,8 @@ const useMaakForm = ({
       case "select":
         const defaultValue = config?.defaultValue
         const currentValue = value
-        const defaultOption = config?.options?.find(
+        const selectConfig = config as SelectFieldConfig
+        const defaultOption = selectConfig.options?.find(
           (option) => option.value === defaultValue
         )
         const defaultOptionValue = defaultOption?.value
@@ -274,14 +378,37 @@ const useMaakForm = ({
       errorMessage = `${config.label} is required`
     }
     if (typeof valueToValidate === "string" && required) {
-      if (config.minLength && valueToValidate.length < config.minLength) {
-        errorMessage = `Minimum length is ${config.minLength}`
+      const minLengthValue = (config as TextFieldConfig).minLength
+      const maxLengthValue = (config as TextFieldConfig).maxLength
+
+      let minLength =
+        minLengthValue !== undefined
+          ? typeof minLengthValue === "string"
+            ? +minLengthValue
+            : minLengthValue
+          : undefined
+
+      let maxLength =
+        maxLengthValue !== undefined
+          ? typeof maxLengthValue === "string"
+            ? +maxLengthValue
+            : maxLengthValue
+          : undefined
+
+      if (type === "text" && minLength && valueToValidate.length < minLength) {
+        errorMessage = `Minimum length is ${minLength}`
       }
-      if (config.maxLength && valueToValidate.length > config.maxLength) {
-        errorMessage = `Maximum length is ${config.maxLength}`
+      if (type === "text" && maxLength && valueToValidate.length > maxLength) {
+        errorMessage = `Maximum length is ${maxLength}`
       }
-      if (config.pattern && !new RegExp(config.pattern).test(valueToValidate)) {
-        errorMessage = "Invalid format"
+      if (["text", "password"].includes(type)) {
+        const pattern = (config as TextFieldConfig).pattern
+        if (
+          typeof pattern === "string" &&
+          !new RegExp(pattern).test(valueToValidate)
+        ) {
+          errorMessage = "Invalid format"
+        }
       }
     }
 
@@ -380,12 +507,12 @@ const useMaakForm = ({
   const createInputElement = useCallback(
     (fieldName: string, config: FieldConfig): JSX.Element => {
       const field = form[fieldName]
-      const type = form[fieldName]?.type || "text"
+      const type = form[fieldName].type as FieldType
       const placeHolder = field?.placeHolder || config?.placeHolder || ""
       const fieldValue = field?.value ?? field?.defaultValue ?? ""
       const className = `${globalClassNames?.[type]} ${form[fieldName]?.className}`
       const label = field?.label || config?.label || ""
-      const onClick = field?.onClick || config?.onClick
+      const onClick = field?.onClick || (config as ButtonFieldConfig)?.onClick
 
       let inputProps = {
         name: fieldName,
@@ -396,9 +523,16 @@ const useMaakForm = ({
 
       switch (type) {
         case "select":
-          const options = field?.options || config.options || []
-          const labelKey = field?.labelKey || config?.labelKey || "label"
-          const valueKey = field?.valueKey || config?.valueKey || "value"
+          const options =
+            field?.options || (config as SelectFieldConfig).options || []
+          const labelKey =
+            field?.labelKey ||
+            (config as SelectFieldConfig)?.labelKey ||
+            "label"
+          const valueKey =
+            field?.valueKey ||
+            (config as SelectFieldConfig)?.valueKey ||
+            "value"
           const selectFieldValue = String(fieldValue)
 
           return (
@@ -441,8 +575,20 @@ const useMaakForm = ({
               type="number"
               value={fieldValue as number}
               placeholder={config?.placeHolder || (placeHolder as string)}
-              minLength={config?.minLength}
-              maxLength={config?.maxLength}
+              min={(config as NumberFieldConfig)?.min}
+              max={(config as NumberFieldConfig)?.max}
+              required={config?.required}
+            />
+          )
+        case "date":
+          return (
+            <input
+              {...inputProps}
+              type="date"
+              value={fieldValue as string}
+              placeholder={placeHolder as string}
+              min={(config as DateFieldConfig)?.min}
+              max={(config as DateFieldConfig)?.max}
               required={config?.required}
             />
           )
@@ -454,8 +600,8 @@ const useMaakForm = ({
               type="text"
               value={fieldValue as string}
               placeholder={placeHolder as string}
-              minLength={config?.minLength}
-              maxLength={config?.maxLength}
+              minLength={(config as TextFieldConfig)?.minLength}
+              maxLength={(config as TextFieldConfig)?.maxLength}
               required={config?.required}
             />
           )
@@ -510,19 +656,38 @@ const useMaakForm = ({
 
     Object.keys(form).forEach((fieldName) => {
       const field = form[fieldName]
-      const fieldType = field.type
-      const fieldValue = field as string | boolean | OptionType
-      let value
+      const fieldType = field.type || "text"
+      let value: ValueOptions
 
       if (
-        fieldType === "select" &&
-        typeof fieldValue === "object" &&
-        fieldValue !== null &&
-        "value" in fieldValue
+        ["select", "radio", "multiselect", "searchable-select"].includes(
+          fieldType
+        ) &&
+        typeof field.value === "object" &&
+        field.value !== null &&
+        isObject(field.value)
       ) {
-        value = fieldValue.value
+        const determineKey = (defaultKey: string, alternatives: string[]) => {
+          if (field[defaultKey] !== undefined) {
+            return field[defaultKey]
+          }
+          if (isObject(field.value)) {
+            for (const key of alternatives) {
+              if (key in field.value) {
+                return key
+              }
+            }
+          }
+          return defaultKey
+        }
+
+        // const labelKey = determineKey("label", ["name"])
+        const valueKey = determineKey("value", ["key", "id"])
+
+        // Extract the value using the determined key
+        value = field.value[valueKey]
       } else {
-        value = fieldValue
+        value = field.value
       }
 
       obj[fieldName] = {

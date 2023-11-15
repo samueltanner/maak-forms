@@ -5,6 +5,8 @@ import useMaakForm, {
   FormObject,
   ValueOptions,
   OptionType,
+  FormElement,
+  FieldConfig,
 } from "../../hooks/useMaakForm"
 import {
   defaultButtonStyling,
@@ -14,21 +16,6 @@ import {
   defaultResetButtonStyling,
   defaultSubmitButtonStyling,
 } from "../demo-styles/component-styles"
-
-interface FormElement {
-  label: string
-  type: FieldType
-  minLength?: number
-  maxLength?: number
-  required: boolean
-  defaultValue?: any
-  placeHolder?: string
-  pattern?: string
-  options?: OptionType[]
-  labelKey?: string
-  valueKey?: string
-  className?: string
-}
 
 const FormBuilder = () => {
   const [form, setForm] = useState<FormType>({})
@@ -67,8 +54,8 @@ const FormBuilder = () => {
 
   const addFormElement = (newFormElement: FormElement) => {
     const newForm = { ...form }
-    const key = newFormElement.label.toLowerCase().split(" ").join("_")
-    newForm[key] = newFormElement
+    const key = newFormElement.label!.toLowerCase().split(" ").join("_")
+    newForm[key] = newFormElement as FieldConfig
     setForm(newForm)
   }
 

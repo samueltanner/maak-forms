@@ -34,14 +34,12 @@ export const add_user_form: FormType = {
   is_analyst_and_therapist: {
     label: "Is Analyst and Therapist?",
     type: "boolean",
-    required: false,
     className: "",
     defaultValue: false,
   },
   organization: {
     label: "Organization",
     type: "select",
-    required: true,
     placeHolder: "Select An Organization",
   },
 }
