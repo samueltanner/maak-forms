@@ -1,4 +1,4 @@
-import { min } from "lodash"
+import { get, min } from "lodash"
 import isEqual from "lodash/isEqual"
 import { isObject } from "lodash"
 import {
@@ -31,7 +31,7 @@ export type FieldType =
   | "searchable-select"
   | "text"
 
-interface BaseFieldConfig {
+export interface BaseFieldConfig {
   type: FieldType
   label?: string
   required?: boolean
@@ -42,56 +42,56 @@ interface BaseFieldConfig {
   readonly?: boolean
 }
 
-interface TextFieldConfig extends BaseFieldConfig {
+export interface TextFieldConfig extends BaseFieldConfig {
   type: "text" | "password"
   minLength?: number
   maxLength?: number
   pattern?: string
 }
 
-interface PasswordFieldConfig extends TextFieldConfig {
+export interface PasswordFieldConfig extends TextFieldConfig {
   type: "password"
 }
 
-interface SelectFieldConfig extends BaseFieldConfig {
+export interface SelectFieldConfig extends BaseFieldConfig {
   type: "select" | "radio" | "multiselect" | "searchable-select"
   options?: OptionType[]
   labelKey?: string
   valueKey?: string
 }
 
-interface BooleanFieldConfig extends BaseFieldConfig {
+export interface BooleanFieldConfig extends BaseFieldConfig {
   type: "boolean"
 }
 
-interface ButtonFieldConfig extends BaseFieldConfig {
+export interface ButtonFieldConfig extends BaseFieldConfig {
   type: "button"
   onClick?: (props?: any) => void
 }
 
-interface NumberFieldConfig extends BaseFieldConfig {
+export interface NumberFieldConfig extends BaseFieldConfig {
   type: "number" | "range" | "bounded-range"
   min?: number
   max?: number
   step?: number
 }
 
-interface DateFieldConfig extends BaseFieldConfig {
+export interface DateFieldConfig extends BaseFieldConfig {
   type: "date" | "datetime"
   min?: number
   max?: number
   step?: number
 }
 
-interface DateTimeFieldConfig extends DateFieldConfig {
+export interface DateTimeFieldConfig extends DateFieldConfig {
   type: "datetime"
 }
 
-interface RadioFieldConfig extends SelectFieldConfig {
+export interface RadioFieldConfig extends SelectFieldConfig {
   type: "radio"
 }
 
-interface RangeFieldConfig extends NumberFieldConfig {
+export interface RangeFieldConfig extends NumberFieldConfig {
   type: "range" | "bounded-range"
 }
 
@@ -108,41 +108,14 @@ export type FieldConfig =
   | RadioFieldConfig
   | RangeFieldConfig
 
-// interface FieldConfig {
-//   type: FieldType
-//   label?: string
-//   options?: OptionType[]
-//   required?: boolean
-//   defaultValue?: ValueOptions
-//   placeHolder?: string
-//   minLength?: number
-//   maxLength?: number
-//   pattern?: string
-//   className?: string
-//   labelKey?: string
-//   valueKey?: string
-//   onClick?: (props?: any) => void
-// }
-
 export type ValueOptions = string | boolean | undefined | number | OptionType
+export interface FormResponse {
+  [key: string]: ValueOptions
+}
 
-interface FormErrors {
+export interface FormErrors {
   [key: string]: string | null
 }
-
-interface FormComponentProps {
-  formConfig: FormType
-  onSubmit?: any
-  setGlobalClassNames?: GlobalClassNames
-  setFormObject?: FormObject
-  key?: string
-}
-
-interface GlobalClassNames {
-  [key: string]: string
-}
-
-type InputChangeEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement>
 
 export interface FormElement {
   [key: string]: any
@@ -153,7 +126,7 @@ export interface FormElement {
   defaultValue?: any
   placeHolder?: string
   pattern?: string
-  options?: OptionType[]
+  options?: OptionType[] | any[]
   labelKey?: string
   valueKey?: string
   className?: string
@@ -173,6 +146,19 @@ export interface FormObject {
     errors?: string | null
   }
 }
+interface FormComponentProps {
+  formConfig: FormType
+  onSubmit?: any
+  setGlobalClassNames?: GlobalClassNames
+  setFormObject?: FormObject
+  key?: string
+}
+
+interface GlobalClassNames {
+  [key: string]: string
+}
+
+type InputChangeEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement>
 
 const useMaakForm = ({
   key,
@@ -265,15 +251,39 @@ const useMaakForm = ({
 
     const updatedFormObject = {} as FormObject
 
-    inputFields.forEach((key) => {
-      if (["submit", "reset"].includes(key)) {
+    const getDefaultValue = (
+      newDefaultValue: ValueOptions,
+      prevDefaultValue: ValueOptions
+    ) => {
+      if (newDefaultValue === undefined) {
+        return prevDefaultValue
       }
+      return newDefaultValue
+    }
+
+    const getValue = (
+      newValue: ValueOptions,
+      prevValue: ValueOptions,
+      defaultValue: ValueOptions
+    ) => {
+      if (newValue) return newValue
+      if (prevValue) return prevValue
+
+      return defaultValue
+    }
+
+    inputFields.forEach((key) => {
       const newItem = input[key]
       const prevItem = prevForm?.[key]
-      const value = newItem?.value || prevItem?.value || newItem?.defaultValue
+      const defaultValue = getDefaultValue(
+        newItem?.defaultValue,
+        prevItem?.defaultValue
+      )
+      const value = getValue(newItem?.value, prevItem?.value, defaultValue)
 
       updatedFormObject[key] = {
         value,
+        defaultValue: newItem?.defaultValue || prevItem?.defaultValue,
         ...prevItem,
         ...newItem,
       }
@@ -633,6 +643,7 @@ const useMaakForm = ({
       throw new Error("Form validation errors")
     } else {
       const { submit, reset, ...formValues } = transformedFormValues
+      formValues as FormResponse
       onSubmit(formValues)
     }
   }, [validateForm, onSubmit])
@@ -681,10 +692,8 @@ const useMaakForm = ({
           return defaultKey
         }
 
-        // const labelKey = determineKey("label", ["name"])
         const valueKey = determineKey("value", ["key", "id"])
 
-        // Extract the value using the determined key
         value = field.value[valueKey]
       } else {
         value = field.value

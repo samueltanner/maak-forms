@@ -9,7 +9,7 @@ import {
 } from "../demo-styles/component-styles"
 import { add_user_form } from "../form-definitions/add-user-form"
 const AddUserForm = () => {
-  const { formElements } = useMaakForm({
+  const { formElements, formErrors } = useMaakForm({
     formConfig: add_user_form,
     onSubmit: () => {
       console.log("form submitted")
@@ -56,11 +56,6 @@ const AddUserForm = () => {
       },
     },
   })
-
-  useEffect(() => {
-    // console.log("formElements name value", formElements.name.value)
-    // console.log("formElements", formElements)
-  }, [formElements])
 
   const {
     name,
