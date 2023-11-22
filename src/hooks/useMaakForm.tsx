@@ -1,4 +1,3 @@
-import { get, min } from "lodash"
 import isEqual from "lodash/isEqual"
 import { isObject } from "lodash"
 import {
@@ -164,27 +163,17 @@ const useMaakForm = ({
   key,
   formConfig,
   onSubmit,
-  setGlobalClassNames,
-  setFormObject = {},
+  setGlobalClassNames: globalClassNamesProp = {},
+  setFormObject: formObjectProp = {},
 }: FormComponentProps) => {
-  const initialFormRef = useRef<FormObject>({})
-  const globalClassNames = setGlobalClassNames || {}
-  const formConfigRef = useRef<string>(JSON.stringify({}))
-  const prevFormRef = useRef<FormObject>({})
-
-  useEffect(() => {
-    if (Object.keys(formConfig).length === 0) return
-    const constructedForm = constructUpdatedForm(setFormObject, formConfig)
-
-    initialFormRef.current = constructedForm
-  }, [formConfig, setFormObject])
-
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const [showErrors, setShowErrors] = useState<boolean>(false)
   const [form, setForm] = useState<FormObject>(() => {
     formConfig["submit"] = {
       label: formConfig["submit"]?.label,
       type: "button",
       required: true,
-      className: `${globalClassNames?.button} ${
+      className: `${globalClassNamesProp?.button} ${
         formConfig["submit"]?.className || ""
       }`,
     }
@@ -192,7 +181,7 @@ const useMaakForm = ({
       label: formConfig["reset"]?.label,
       type: "button",
       required: true,
-      className: `${globalClassNames?.button} ${
+      className: `${globalClassNamesProp?.button} ${
         formConfig["reset"]?.className || ""
       }`,
     }
@@ -215,34 +204,36 @@ const useMaakForm = ({
       return values
     }, {} as FormObject)
   })
+  const initialFormRef = useRef<FormObject>({})
+  const formConfigRef = useRef<string>(JSON.stringify({}))
+  const prevFormRef = useRef<FormObject>({})
 
-  const [formErrors, setFormErrors] = useState<FormErrors>({})
-  const [showErrors, setShowErrors] = useState<boolean>(false)
+  useEffect(() => {
+    if (Object.keys(formConfig).length === 0) return
+    const constructedForm = constructUpdatedForm(formObjectProp, formConfig)
+    initialFormRef.current = constructedForm
+    setForm(constructedForm)
+  }, [JSON.stringify(formConfig), JSON.stringify(formObjectProp)])
+
+  useEffect(() => {
+    if (formObjectProp && !isEqual(form, formObjectProp)) {
+      handleUpdateFormItem({ formObjectInput: formObjectProp })
+    }
+  }, [formObjectProp])
 
   useEffect(() => {
     formConfig["submit"]["required"] = true
     formConfig["reset"]["required"] = true
-    if (formConfigRef.current !== JSON.stringify(formConfig)) {
-      const constructedForm = constructUpdatedForm(setFormObject, formConfig)
-      const constructedErrors = constructUpdatedErrors(
-        setFormObject,
-        formConfig
-      )
-
-      setForm(constructedForm)
-    }
     formConfigRef.current = JSON.stringify(formConfig)
-  })
+  }, [JSON.stringify(formConfig), JSON.stringify(formObjectProp)])
 
   useEffect(() => {
-    if (setFormObject && !isEqual(form, setFormObject)) {
-      handleUpdateFormItem({ formObjectInput: setFormObject })
-    }
-  }, [setFormObject])
+    validateForm()
+  }, [form])
 
-  function constructUpdatedForm(input: FormObject, prevForm: FormObject) {
+  const constructUpdatedForm = (input: FormObject, prevForm: FormObject) => {
     const inputFields = new Set(Object.keys(formConfig))
-    const setFormObjectKeys = Object.keys(setFormObject)
+    const setFormObjectKeys = Object.keys(formObjectProp)
     if (setFormObjectKeys.length > 0) {
       setFormObjectKeys.forEach((key) => {
         inputFields.add(key)
@@ -280,7 +271,6 @@ const useMaakForm = ({
         prevItem?.defaultValue
       )
       const value = getValue(newItem?.value, prevItem?.value, defaultValue)
-
       updatedFormObject[key] = {
         value,
         defaultValue: newItem?.defaultValue || prevItem?.defaultValue,
@@ -289,13 +279,14 @@ const useMaakForm = ({
       }
     })
 
+    initialFormRef.current = updatedFormObject
     return updatedFormObject
   }
 
   function constructUpdatedErrors(input: FormObject, prevForm: FormObject) {
     const updatedErrorObject = {} as FormErrors
     const inputFields = new Set(Object.keys(formConfig))
-    const setFormObjectKeys = Object.keys(setFormObject)
+    const setFormObjectKeys = Object.keys(formObjectProp)
     if (setFormObjectKeys.length > 0) {
       setFormObjectKeys.forEach((key) => {
         inputFields.add(key)
@@ -444,10 +435,6 @@ const useMaakForm = ({
     return null
   }
 
-  useEffect(() => {
-    validateForm()
-  }, [form])
-
   function validateForm() {
     const errors: FormErrors = {}
 
@@ -498,7 +485,7 @@ const useMaakForm = ({
           className={`${
             form?.[fieldName]?.className ||
             className ||
-            globalClassNames?.button
+            globalClassNamesProp?.button
           } ${!enabled ? "cursor-not-allowed opacity-50" : "opacity-100"}`}
           onClick={() => {
             if (onClick && enabled) {
@@ -511,7 +498,7 @@ const useMaakForm = ({
         </button>
       )
     },
-    [form, formConfig, globalClassNames, formConfigRef, formErrors]
+    [form, formConfig, globalClassNamesProp, formConfigRef, formErrors]
   )
 
   const createInputElement = useCallback(
@@ -520,9 +507,10 @@ const useMaakForm = ({
       const type = form[fieldName].type as FieldType
       const placeHolder = field?.placeHolder || config?.placeHolder || ""
       const fieldValue = field?.value ?? field?.defaultValue ?? ""
-      const className = `${globalClassNames?.[type]} ${form[fieldName]?.className}`
+      const className = `${globalClassNamesProp?.[type]} ${form[fieldName]?.className}`
       const label = field?.label || config?.label || ""
       const onClick = field?.onClick || (config as ButtonFieldConfig)?.onClick
+      const value = field?.value || field?.defaultValue || ""
 
       let inputProps = {
         name: fieldName,
@@ -547,7 +535,7 @@ const useMaakForm = ({
 
           return (
             <select {...inputProps} value={selectFieldValue}>
-              {!options.find((opt) => opt[valueKey] === "") && (
+              {!options.find((opt) => opt[valueKey] === "" || value) && (
                 <option value="" disabled>
                   {(placeHolder as string) || "Select an option"}
                 </option>
@@ -619,7 +607,7 @@ const useMaakForm = ({
     },
     [
       form,
-      globalClassNames,
+      globalClassNamesProp,
       handleChange,
       formConfig,
       formConfigRef,
@@ -651,12 +639,44 @@ const useMaakForm = ({
   function handleResetInternal() {
     const originalFormState = initialFormRef.current
     if (Object.keys(originalFormState).length === 0) {
-      const error = new Error("initialForm is empty")
-      console.log(error)
+      console.warn("initialForm is empty")
     } else {
       setForm(originalFormState)
     }
     setShowErrors(false)
+  }
+
+  const determineKey = (field: FormElement) => {
+    const defaultKey = field?.valueKey || "value"
+    const alternatives = ["key", "id"]
+
+    if (defaultKey in field) {
+      return defaultKey
+    }
+
+    if (isObject(field.value)) {
+      for (const key of alternatives) {
+        if (key in field.value) {
+          return key
+        }
+      }
+    }
+
+    const fieldValue = field[defaultKey]
+    if (
+      typeof fieldValue === "string" ||
+      typeof fieldValue === "number" ||
+      typeof fieldValue === "boolean"
+    ) {
+      return defaultKey
+    } else {
+      console.log(field)
+      throw new Error(
+        `Unable to determine a key for ${
+          field.fieldName || field.label || field.name
+        }, please provide a "valueKey" for this field.`
+      )
+    }
   }
 
   const formObject = useMemo(() => {
@@ -678,21 +698,7 @@ const useMaakForm = ({
         field.value !== null &&
         isObject(field.value)
       ) {
-        const determineKey = (defaultKey: string, alternatives: string[]) => {
-          if (field[defaultKey] !== undefined) {
-            return field[defaultKey]
-          }
-          if (isObject(field.value)) {
-            for (const key of alternatives) {
-              if (key in field.value) {
-                return key
-              }
-            }
-          }
-          return defaultKey
-        }
-
-        const valueKey = determineKey("value", ["key", "id"])
+        const valueKey = determineKey(field)
 
         value = field.value[valueKey]
       } else {
@@ -723,7 +729,7 @@ const useMaakForm = ({
           onClick={handleSubmitInternal}
           enabled={submitEnabled}
           className={`${
-            form["submit"]?.className || globalClassNames?.button
+            form["submit"]?.className || globalClassNamesProp?.button
           } ${
             !submitEnabled ? "cursor-not-allowed opacity-50" : "opacity-100"
           }`}
@@ -740,7 +746,7 @@ const useMaakForm = ({
           type="reset"
           label={form["reset"]?.label || "Reset"}
           onClick={handleResetInternal}
-          className={form["reset"]?.className || globalClassNames?.button}
+          className={form["reset"]?.className || globalClassNamesProp?.button}
         />
       ),
     }
@@ -752,7 +758,9 @@ const useMaakForm = ({
     handleSubmitInternal,
     handleResetInternal,
     form,
-    globalClassNames,
+    globalClassNamesProp,
+    formObjectProp,
+    initialFormRef,
   ])
 
   const FormComponent = useMemo(() => {
@@ -782,15 +790,15 @@ const useMaakForm = ({
                     <div className="flex justify-between">
                       <label
                         htmlFor={label}
-                        className={`${globalClassNames?.label} whitespace-nowrap`}
+                        className={`${globalClassNamesProp?.label} whitespace-nowrap`}
                       >
                         {label} {required && "*"}
                       </label>
-                      <span className="flex h-2 w-full justify-end">
+                      {/* <span className="flex h-2 w-full justify-end font-semibold">
                         {showErrors && errors && (
                           <span className="text-xs text-red-500">{errors}</span>
                         )}
-                      </span>
+                      </span> */}
                     </div>
                   )}
                   <div
@@ -806,6 +814,11 @@ const useMaakForm = ({
                         formFieldObject as FieldConfig
                       )}
                   </div>
+                  {showErrors && errors && (
+                    <span className="flex h-2 w-full justify-start font-semibold">
+                      <span className="text-xs text-red-500">{errors}</span>
+                    </span>
+                  )}
                 </div>
               )
             }
@@ -831,7 +844,7 @@ const useMaakForm = ({
         </div>
       </form>
     )
-  }, [formConfig, form, initialFormRef, createInputElement])
+  }, [formConfig, form, initialFormRef, createInputElement, formObjectProp])
 
   const setFieldValue = useCallback(
     (fieldName: string, value: ValueOptions) => {
